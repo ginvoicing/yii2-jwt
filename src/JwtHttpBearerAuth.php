@@ -1,12 +1,15 @@
-<?php
+<?php declare(strict_types=1);
 
-namespace sizeg\jwt;
+namespace bizley\jwt;
 
-use yii\di\Instance;
-use yii\filters\auth\AuthMethod;
+use Lcobucci\JWT\Token;
+use yii\base\InvalidConfigException;
+use yii\web\IdentityInterface;
+use yii\web\Response;
+use yii\web\UnauthorizedHttpException;
 
 /**
- * JwtHttpBearerAuth is an action filter that supports the authentication method based on JSON Web Token.
+ * JwtHttpBearerAuth is an action filter that supports the authentication method based on HTTP Bearer JSON Web Token.
  *
  * You may use JwtHttpBearerAuth by attaching it as a behavior to a controller or module, like the following:
  *
@@ -14,102 +17,101 @@ use yii\filters\auth\AuthMethod;
  * public function behaviors()
  * {
  *     return [
- *         'bearerAuth' => [
- *             'class' => \sizeg\jwt\JwtHttpBearerAuth::className(),
+ *         'JWTBearerAuth' => [
+ *             'class' => \bizley\jwt\JwtHttpBearerAuth::class,
  *         ],
  *     ];
  * }
  * ```
- *
- * @author Dmitriy Demin <sizemail@gmail.com>
- * @since 1.0.0-a
  */
-class JwtHttpBearerAuth extends AuthMethod
+class JwtHttpBearerAuth extends \yii\filters\auth\HttpBearerAuth
 {
-
     /**
-     * @var Jwt|string|array the [[Jwt]] object or the application component ID of the [[Jwt]].
+     * @var string|array|Jwt JWT handler object, configuration array, or the application component ID of
+     * the JWT handler, or JWT handler object itself.
+     * By default it's assumes that component of ID "jwt" has been configured.
      */
     public $jwt = 'jwt';
 
     /**
-     * @var string A "realm" attribute MAY be included to indicate the scope
-     * of protection in the manner described in HTTP/1.1 [RFC2617].  The "realm"
-     * attribute MUST NOT appear more than once.
-     */
-    public $realm = 'api';
-
-    /**
-     * @var string Authorization header schema, default 'Bearer'
-     */
-    public $schema = 'Bearer';
-
-    /**
-     * @var callable a PHP callable that will authenticate the user with the JWT payload information
+     * @var \Closure anonymous function that will return identity of user authenticated with the JWT payload information.
+     * It should have the following signature:
      *
      * ```php
-     * function ($token, $authMethod) {
-     *    return \app\models\User::findOne($token->getClaim('id'));
-     * }
+     * function (Token $token)
      * ```
      *
-     * If this property is not set, the username information will be considered as an access token
-     * while the password information will be ignored. The [[\yii\web\User::loginByAccessToken()]]
-     * method will be called to authenticate and login the user.
+     * where $token is JWT token provided in the HTTP header.
+     * If $auth is not provided method User::loginByAccessToken() will be called instead.
      */
     public $auth;
 
     /**
-     * @inheritdoc
+     * @throws InvalidConfigException
      */
-    public function init()
+    public function init(): void
     {
         parent::init();
-        $this->jwt = Instance::ensure($this->jwt, Jwt::className());
+
+        $this->jwt = \yii\di\Instance::ensure($this->jwt, Jwt::class);
+
+        if (empty($this->pattern)) {
+            throw new InvalidConfigException('You must provide pattern to use to extract the HTTP authentication value!');
+        }
     }
 
     /**
-     * @inheritdoc
+     * Authenticates the current user.
+     * @param \yii\web\User $user
+     * @param \yii\web\Request $request
+     * @param Response $response
+     * @return IdentityInterface the authenticated user identity. If authentication information is not provided, null will be returned.
+     * @throws UnauthorizedHttpException if authentication information is provided but is invalid.
      */
-    public function authenticate($user, $request, $response)
+    public function authenticate($user, $request, $response): ?IdentityInterface // BC signature
     {
-        $authHeader = $request->getHeaders()->get('Authorization');
-        if ($authHeader !== null && preg_match('/^' . $this->schema . '\s+(.*?)$/', $authHeader, $matches)) {
-            $token = $this->loadToken($matches[1]);
-            if ($token === null) {
-                return null;
-            }
+        $authHeader = $request->getHeaders()->get($this->header);
 
-            if ($this->auth) {
-                $identity = call_user_func($this->auth, $token, get_class($this));
-            } else {
-                $identity = $user->loginByAccessToken($token, get_class($this));
-            }
-
-            return $identity;
+        if ($authHeader === null || !preg_match($this->pattern, $authHeader, $matches)) {
+            return null;
         }
 
-        return null;
+        $identity = null;
+
+        $token = $this->loadToken($matches[1]);
+        if ($token !== null) {
+            if ($this->auth instanceof \Closure) {
+                $identity = \call_user_func($this->auth, $token);
+            } else {
+                $identity = $user->loginByAccessToken($authHeader, \get_class($this));
+            }
+        }
+
+        if ($identity === null) {
+            $this->challenge($response);
+            $this->handleFailure($response);
+        }
+
+        return $identity;
     }
 
     /**
-     * @inheritdoc
-     */
-    public function challenge($response)
-    {
-        $response->getHeaders()->set(
-            'WWW-Authenticate',
-            "{$this->schema} realm=\"{$this->realm}\", error=\"invalid_token\", error_description=\"The access token invalid or expired\""
-        );
-    }
-
-    /**
-     * Parses the JWT and returns a token class
-     * @param string $token JWT
+     * Loads the JWT.
+     * @param string $data data provided in HTTP header, presumably JWT
      * @return Token|null
      */
-    public function loadToken($token)
+    public function loadToken(string $data): ?Token
     {
-        return $this->jwt->loadToken($token);
+        return $this->jwt->loadToken($data);
+    }
+
+    /**
+     * Handles authentication failure.
+     * @param Response $response
+     * @throws UnauthorizedHttpException
+     */
+    public function handleFailure($response): void // BC signature
+    {
+        throw new UnauthorizedHttpException('Your request was made with invalid or expired JSON Web Token.');
     }
 }
