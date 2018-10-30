@@ -1,102 +1,92 @@
 <?php
 
-namespace jwttests;
+namespace bizley\tests;
+
+use bizley\jwt\Jwt;
+use Lcobucci\JWT\Signer\Hmac\Sha256;
+use Lcobucci\JWT\Token;
+use Lcobucci\JWT\ValidationData;
 
 class JwtTest extends \PHPUnit\Framework\TestCase
 {
-
     /**
      * Secret key
      */
-    const SECRET = 'secret';
+    public const SECRET = 'secret';
     
     /**
      * Issuer
      */
-    const ISSUER = 'http://example.com';
+    public const ISSUER = 'http://example.com';
     
     /**
      * Audience
      */
-    const AUDIENCE = 'http://example.org';
+    public const AUDIENCE = 'http://example.org';
     
     /**
      * Id
      */
-    const ID = '4f1g23a12aa';
+    public const ID = '4f1g23a12aa';
 
     /**
      * @var Jwt
      */
     public $jwt;
 
-    /**
-     * @ineritdoc
-     */
-    public function setUp()
+    public function setUp(): void
     {
-        $this->jwt = \Yii::createObject(\sizeg\jwt\Jwt::class, [
-            ['key' => self::SECRET]
+        $this->jwt = \Yii::createObject([
+            'class' => Jwt::class,
+            'key' => self::SECRET,
         ]);
     }
 
-    /**
-     * @return Sha256 signer
-     */
-    public function getSignerSha256()
+    public function getSignerSha256(): Sha256
     {
-        return new \Lcobucci\JWT\Signer\Hmac\Sha256();
+        return new Sha256();
     }
 
-    /**
-     * @return Token created token
-     */
-    public function createTokenWithSignature()
+    public function createTokenWithSignature(): Token
     {
-        return $this->jwt->getBuilder()->setIssuer(self::ISSUER) // Configures the issuer (iss claim)
-                ->setAudience(self::AUDIENCE) // Configures the audience (aud claim)
-                ->setId(self::ID, true) // Configures the id (jti claim), replicating as a header item
-                ->setIssuedAt(time()) // Configures the time that the token was issue (iat claim)
-                ->setExpiration(time() + 3600) // Configures the expiration time of the token (nbf claim)
-                ->set('uid', 1) // Configures a new claim, called "uid"
-                ->sign($this->getSignerSha256(), $this->jwt->key) // creates a signature using "testing" as key
-                ->getToken(); // Retrieves the generated token
+        return $this->jwt
+            ->getBuilder()->setIssuer(self::ISSUER) // Configures the issuer (iss claim)
+            ->setAudience(self::AUDIENCE) // Configures the audience (aud claim)
+            ->setId(self::ID, true) // Configures the id (jti claim), replicating as a header item
+            ->setIssuedAt(time()) // Configures the time that the token was issue (iat claim)
+            ->setExpiration(time() + 3600) // Configures the expiration time of the token (nbf claim)
+            ->set('uid', 1) // Configures a new claim, called "uid"
+            ->sign($this->getSignerSha256(), $this->jwt->key) // creates a signature using "testing" as key
+            ->getToken(); // Retrieves the generated token
     }
     
-    /**
-     * @return ValidationData
-     */
-    public function getValidationData()
+    public function getValidationData(): ValidationData
     {
         $data = $this->jwt->getValidationData(); // It will use the current time to validate (iat, nbf and exp)
+
         $data->setIssuer(self::ISSUER);
         $data->setAudience(self::AUDIENCE);
         $data->setId(self::ID);
+
         return $data;
     }
 
-    /**
-     * Validate token with signature
-     */
-    public function testValidateTokenWithSignature()
+    public function testValidateTokenWithSignature(): void
     {
         $token = $this->createTokenWithSignature();
         $data = $this->getValidationData();
-        $is_verify = $token->verify($this->getSignerSha256(), $this->jwt->key);
-        $is_valid = $token->validate($data); // true, because validation information is equals to data contained on the token
-        $this->assertTrue($is_verify && $is_valid);
+
+        $this->assertTrue($token->verify($this->getSignerSha256(), $this->jwt->key));
+        $this->assertTrue($token->validate($data));
     }
     
-    /**
-     * Validate token timeout with signature
-     */
-    public function testValidateTokenTimeoutWithSignature()
+    public function testValidateTokenTimeoutWithSignature(): void
     {
         $token = $this->createTokenWithSignature();
         $data = $this->getValidationData();
+
         $data->setCurrentTime(time() + 4000); // changing the validation time to future
-        $is_verify = $token->verify($this->getSignerSha256(), $this->jwt->key);
-        $is_valid = $token->validate($data); // false, because token is expired since current time is greater than exp
-        $this->assertFalse($is_verify && $is_valid);
+
+        $this->assertFalse($token->validate($data)); // false, because token is expired since current time is greater than exp
     }
 }
