@@ -23,6 +23,9 @@ use yii\web\UnauthorizedHttpException;
  *     ];
  * }
  * ```
+ *
+ * @author Dmitriy Demin <sizemail@gmail.com> original package
+ * @author Paweł Bizley Brzozowski <pawel@positive.codes> since 2.0 (fork)
  */
 class JwtHttpBearerAuth extends \yii\filters\auth\HttpBearerAuth
 {
