@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 
 namespace bizley\tests;
 
@@ -15,19 +15,33 @@ class TokenValidationTest extends \PHPUnit\Framework\TestCase
     /**
      * @var Jwt
      */
-    public $jwt;
+    protected $jwt;
 
-    public function setUp(): void
+    /**
+     * @param bool $reinit
+     * @param array $config
+     * @return Jwt
+     * @throws \yii\base\InvalidConfigException
+     */
+    public function getJwt(bool $reinit = false, array $config = []): Jwt
     {
-        $this->jwt = \Yii::createObject([
-            'class' => Jwt::class,
-            'key' => 'secret',
-        ]);
+        if ($reinit || $this->jwt === null) {
+            $this->jwt = \Yii::createObject(array_merge([
+                'class' => Jwt::class,
+                'key' => 'secret',
+            ], $config));
+        }
+
+        return $this->jwt;
     }
 
+    /**
+     * @return Token
+     * @throws \yii\base\InvalidConfigException
+     */
     public function createToken(): Token
     {
-        return $this->jwt->getBuilder()
+        return $this->getJwt()->getBuilder()
             ->setIssuer(static::$issuer)
             ->setAudience(static::$audience)
             ->setId(static::$id, true)
@@ -36,10 +50,14 @@ class TokenValidationTest extends \PHPUnit\Framework\TestCase
             ->set('uid', 1)
             ->getToken();
     }
-    
+
+    /**
+     * @return ValidationData
+     * @throws \yii\base\InvalidConfigException
+     */
     public function getValidationData(): ValidationData
     {
-        $data = $this->jwt->getValidationData();
+        $data = $this->getJwt()->getValidationData();
 
         $data->setIssuer(static::$issuer);
         $data->setAudience(static::$audience);
@@ -48,6 +66,9 @@ class TokenValidationTest extends \PHPUnit\Framework\TestCase
         return $data;
     }
 
+    /**
+     * @throws \yii\base\InvalidConfigException
+     */
     public function testValidateToken(): void
     {
         $token = $this->createToken();
@@ -55,7 +76,10 @@ class TokenValidationTest extends \PHPUnit\Framework\TestCase
 
         $this->assertTrue($token->validate($data));
     }
-    
+
+    /**
+     * @throws \yii\base\InvalidConfigException
+     */
     public function testValidateTokenTimeout(): void
     {
         $token = $this->createToken();

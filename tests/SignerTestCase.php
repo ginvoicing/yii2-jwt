@@ -1,34 +1,55 @@
-<?php
+<?php declare(strict_types=1);
 
 namespace bizley\tests;
 
 use bizley\jwt\Jwt;
+use Lcobucci\JWT\Builder;
+use Lcobucci\JWT\Signer;
 use Lcobucci\JWT\Token;
 
 abstract class SignerTestCase extends \PHPUnit\Framework\TestCase
 {
+    public $jwtConfig = [];
+
     /**
      * @var Jwt
      */
-    public $jwt;
+    protected $jwt;
 
-    public function setUp(): void
+    /**
+     * @return Jwt
+     * @throws \yii\base\InvalidConfigException
+     */
+    public function getJwt(): Jwt
     {
-        $this->jwt = \Yii::createObject([
-            'class' => Jwt::class,
-            'key' => 'secret',
-        ]);
+        if ($this->jwt === null) {
+            $this->jwt = \Yii::createObject(array_merge([
+                'class' => Jwt::class,
+                'key' => 'secret',
+            ], $this->jwtConfig));
+        }
+
+        return $this->jwt;
     }
 
-    abstract public function getSigner();
+    abstract public function sign(Builder $builder): Builder;
 
+    abstract public function verify(): bool;
+
+    /**
+     * @return Token
+     * @throws \yii\base\InvalidConfigException
+     */
     public function createTokenWithSignature(): Token
     {
-        return $this->jwt->getBuilder()->sign($this->getSigner(), $this->jwt->key)->getToken();
+        return $this->sign($this->getJwt()->getBuilder())->getToken();
     }
-    
+
+    /**
+     * @throws \yii\base\InvalidConfigException
+     */
     public function testValidateTokenWithSignature(): void
     {
-        $this->assertTrue($this->createTokenWithSignature()->verify($this->getSigner(), $this->jwt->key));
+        $this->assertTrue($this->createTokenWithSignature()->verify($this->getSigner(), $this->getJwt()->key));
     }
 }
