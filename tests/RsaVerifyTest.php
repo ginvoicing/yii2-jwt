@@ -6,14 +6,18 @@ use Lcobucci\JWT\Builder;
 use Lcobucci\JWT\Signer;
 use Lcobucci\JWT\Token;
 
-class HmacTest extends SignerTestCase
+class RsaVerifyTest extends SignerTestCase
 {
+    public $jwtConfig = ['key' => '@bizley/tests/data/rsa.key.pub'];
+
+    private $privateKey = '@bizley/tests/data/rsa.key';
+
     /**
      * @return Signer
      */
     public function getSigner(): Signer
     {
-        return new \Lcobucci\JWT\Signer\Hmac\Sha256();
+        return new \Lcobucci\JWT\Signer\Rsa\Sha256();
     }
 
     /**
@@ -23,7 +27,7 @@ class HmacTest extends SignerTestCase
      */
     public function sign(Builder $builder): Builder
     {
-        return $builder->sign($this->getSigner(), $this->getJwt()->key);
+        return $builder->sign($this->getSigner(), $this->getJwt()->prepareKey($this->privateKey));
     }
 
     /**
@@ -33,6 +37,6 @@ class HmacTest extends SignerTestCase
      */
     public function verify(Token $token): bool
     {
-        return $token->verify($this->getSigner(), $this->getJwt()->key);
+        return $token->verify($this->getSigner(), $this->getJwt()->prepareKey($this->getJwt()->key));
     }
 }
