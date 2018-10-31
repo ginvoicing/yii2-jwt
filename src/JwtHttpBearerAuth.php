@@ -86,7 +86,7 @@ class JwtHttpBearerAuth extends \yii\filters\auth\HttpBearerAuth
             if ($this->auth instanceof \Closure) {
                 $identity = \call_user_func($this->auth, $token);
             } else {
-                $identity = $user->loginByAccessToken($authHeader, \get_class($this));
+                $identity = $user->loginByAccessToken((string) $token, \get_class($this));
             }
         }
 

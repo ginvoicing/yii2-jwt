@@ -8,7 +8,7 @@ use yii\web\IdentityInterface;
 
 class UserIdentity extends Component implements IdentityInterface
 {
-    private static $token = '';
+    public static $token;
 
     /**
      * @param int|string $id

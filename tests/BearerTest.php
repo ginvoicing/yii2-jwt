@@ -21,8 +21,10 @@ class BearerTest extends \PHPUnit\Framework\TestCase
             'components' => [
                 'user' => [
                     'identityClass' => UserIdentity::class,
+                    'enableSession' => false,
                 ],
                 'request' => [
+                    'enableCookieValidation' => false,
                     'scriptFile' => __DIR__ . '/index.php',
                     'scriptUrl' => '/index.php',
                 ],
@@ -37,9 +39,12 @@ class BearerTest extends \PHPUnit\Framework\TestCase
         ]);
     }
 
-    public function testHttpBearerAuthWrongToken()
+    /**
+     * @throws \yii\base\InvalidConfigException
+     */
+    public function testHttpBearerAuthInvalidToken(): void
     {
-        Yii::$app->request->headers->set('Authorization', 'Bearer wrong_token');
+        Yii::$app->request->headers->set('Authorization', 'Bearer InvalidToken');
 
         $controller = Yii::$app->createController('test-auth')[0];
 
@@ -51,37 +56,93 @@ class BearerTest extends \PHPUnit\Framework\TestCase
         }
     }
 
-//    public function testHttpBearerAuth()
-//    {
-//        $token = Yii::$app->jwt->getBuilder()->getToken();
-//
-//        Yii::$app->request->headers->set('Authorization', "Bearer $token");
-//
-//        $controller = Yii::$app->createController('test-auth')[0];
-//
-//        try {
-//            $controller->run('filtered');
-//            $this->fail('Should throw UnauthorizedHttpException');
-//        } catch (UnauthorizedHttpException $e) {
-//            $this->assertArrayHasKey('WWW-Authenticate', Yii::$app->getResponse()->getHeaders());
-//        }
-//    }
+    /**
+     * @throws \yii\base\InvalidConfigException
+     */
+    public function testHttpBearerAuthExpiredToken(): void
+    {
+        $token = Yii::$app->jwt->getBuilder()
+            ->setIssuedAt(time() - 100)
+            ->setExpiration(time() - 50)
+            ->getToken();
+
+        Yii::$app->request->headers->set('Authorization', "Bearer $token");
+
+        $controller = Yii::$app->createController('test-auth')[0];
+
+        try {
+            $controller->run('filtered');
+            $this->fail('Should throw UnauthorizedHttpException');
+        } catch (UnauthorizedHttpException $e) {
+            $this->assertArrayHasKey('WWW-Authenticate', Yii::$app->getResponse()->getHeaders());
+        }
+    }
+
+    /**
+     * @throws \yii\base\InvalidConfigException
+     */
+    public function testHttpBearerAuth(): void
+    {
+        $token = Yii::$app->jwt->getBuilder()
+                    ->setIssuedAt(time())
+                    ->setExpiration(time() + 3600)
+                    ->setSubject('test')
+                    ->sign(new \Lcobucci\JWT\Signer\Hmac\Sha256(), Yii::$app->jwt->key)
+                    ->getToken();
+
+        UserIdentity::$token = (string) $token;
+
+        Yii::$app->request->headers->set('Authorization', "Bearer $token");
+
+        $controller = Yii::$app->createController('test-auth')[0];
+
+        $this->assertEquals('test', $controller->run('filtered'));
+    }
+
+    /**
+     * @throws \yii\base\InvalidConfigException
+     */
+    public function testHttpBearerAuthCustom(): void
+    {
+        $token = Yii::$app->jwt->getBuilder()
+            ->setIssuedAt(time())
+            ->setExpiration(time() + 3600)
+            ->setSubject('test')
+            ->sign(new \Lcobucci\JWT\Signer\Hmac\Sha256(), Yii::$app->jwt->key)
+            ->getToken();
+
+        Yii::$app->request->headers->set('Authorization', "Bearer $token");
+
+        $controller = Yii::$app->createController('test-auth')[0];
+        $controller->filterConfig['auth'] = function (\Lcobucci\JWT\Token $token) {
+            $identity = UserIdentity::findIdentity($token->getClaim('sub'));
+            Yii::$app->user->switchIdentity($identity);
+            return $identity;
+        };
+
+        $this->assertEquals('test', $controller->run('filtered'));
+    }
 }
 
 class TestAuthController extends \yii\rest\Controller
 {
+    public $filterConfig = [];
+
     /**
      * @return array
      */
     public function behaviors(): array
     {
-        return ['authenticator' => JwtHttpBearerAuth::class];
+        return ['authenticator' => array_merge(
+            ['class' => JwtHttpBearerAuth::class],
+            $this->filterConfig
+        )];
     }
 
     /**
      * @return string
      */
-    public function actionFiltered(): string
+    public function actionFiltered(): ?string
     {
         return Yii::$app->user->id;
     }
