@@ -4,7 +4,6 @@ namespace bizley\tests;
 
 use Lcobucci\JWT\Builder;
 use Lcobucci\JWT\Signer;
-use Lcobucci\JWT\Signer\Rsa\Sha256;
 use Lcobucci\JWT\Token;
 
 class RsaTest extends SignerTestCase
@@ -18,7 +17,7 @@ class RsaTest extends SignerTestCase
      */
     public function getSigner(): Signer
     {
-        return new Sha256();
+        return new \Lcobucci\JWT\Signer\Rsa\Sha256();
     }
 
     /**
