@@ -4,17 +4,17 @@ namespace bizley\tests;
 
 use Lcobucci\JWT\Builder;
 use Lcobucci\JWT\Signer;
-use Lcobucci\JWT\Signer\Hmac\Sha512;
+use Lcobucci\JWT\Signer\Hmac\Sha256;
 use Lcobucci\JWT\Token;
 
-class HS512Test extends SignerTestCase
+class HmacTest extends SignerTestCase
 {
     /**
      * @return Signer
      */
     public function getSigner(): Signer
     {
-        return new Sha512();
+        return new Sha256();
     }
 
     /**

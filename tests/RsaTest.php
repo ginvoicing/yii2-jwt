@@ -4,11 +4,15 @@ namespace bizley\tests;
 
 use Lcobucci\JWT\Builder;
 use Lcobucci\JWT\Signer;
-use Lcobucci\JWT\Signer\Hmac\Sha256;
+use Lcobucci\JWT\Signer\Rsa\Sha256;
 use Lcobucci\JWT\Token;
 
-class HS256Test extends SignerTestCase
+class RsaTest extends SignerTestCase
 {
+    public $jwtConfig = ['key' => '@bizley/tests/data/rsa.key.pub'];
+
+    private $privateKey = '@bizley/tests/data/rsa.key';
+
     /**
      * @return Signer
      */
@@ -24,7 +28,7 @@ class HS256Test extends SignerTestCase
      */
     public function sign(Builder $builder): Builder
     {
-        return $builder->sign($this->getSigner(), $this->getJwt()->key);
+        return $builder->sign($this->getSigner(), $this->getJwt()->prepareKey($this->privateKey));
     }
 
     /**
@@ -34,6 +38,6 @@ class HS256Test extends SignerTestCase
      */
     public function verify(Token $token): bool
     {
-        return $token->verify($this->getSigner(), $this->getJwt()->key);
+        return $token->verify($this->getSigner(), $this->getJwt()->prepareKey($this->getJwt()->key));
     }
 }
