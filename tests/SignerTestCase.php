@@ -32,9 +32,11 @@ abstract class SignerTestCase extends \PHPUnit\Framework\TestCase
         return $this->jwt;
     }
 
+    abstract public function getSigner(): Signer;
+
     abstract public function sign(Builder $builder): Builder;
 
-    abstract public function verify(): bool;
+    abstract public function verify(Token $token): bool;
 
     /**
      * @return Token
@@ -50,6 +52,6 @@ abstract class SignerTestCase extends \PHPUnit\Framework\TestCase
      */
     public function testValidateTokenWithSignature(): void
     {
-        $this->assertTrue($this->createTokenWithSignature()->verify($this->getSigner(), $this->getJwt()->key));
+        $this->assertTrue($this->verify($this->createTokenWithSignature()));
     }
 }

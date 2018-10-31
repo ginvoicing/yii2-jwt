@@ -134,23 +134,24 @@ class Jwt extends \yii\base\Component
         /* @var $signer \Lcobucci\JWT\Signer */
         $signer = Yii::createObject($this->signers[$alg]);
 
-        return $token->verify($signer, $this->prepareKey());
+        return $token->verify($signer, $this->prepareKey($this->key));
     }
 
     /**
      * Detects key file path and resolves Yii alias if given.
+     * @param string $key
      * @return string|null
      * @throws \LogicException when file path does not exist or is not readable
      * @since 2.0
      */
-    public function prepareKey(): ?string
+    public function prepareKey($key): ?string
     {
         $keyPath = null;
 
-        if (strpos($this->key, '@') === 0) {
-            $keyPath = 'file://' . Yii::getAlias($this->key);
-        } elseif (strpos($this->key, 'file://') === 0) {
-            $keyPath = $this->key;
+        if (strpos($key, '@') === 0) {
+            $keyPath = 'file://' . Yii::getAlias($key);
+        } elseif (strpos($key, 'file://') === 0) {
+            $keyPath = $key;
         }
 
         if ($keyPath !== null) {
@@ -161,6 +162,6 @@ class Jwt extends \yii\base\Component
             return $keyPath;
         }
 
-        return $this->key;
+        return $key;
     }
 }
