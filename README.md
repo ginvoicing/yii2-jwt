@@ -1,3 +1,8 @@
+![Latest Stable Version](https://img.shields.io/packagist/v/bizley/jwt.svg)
+[![Total Downloads](https://img.shields.io/packagist/dt/bizley/jwt.svg)](https://packagist.org/packages/bizley/jwt)
+![License](https://img.shields.io/packagist/l/bizley/jwt.svg)
+[![Build Status](https://travis-ci.org/bizley/yii2-jwt.svg?branch=master)](https://travis-ci.org/bizley/yii2-jwt)
+
 # JWT Integration For Yii 2
 
 This extension provides the [JWT](https://github.com/lcobucci/jwt) integration for 
