@@ -5,6 +5,7 @@ namespace bizley\tests;
 use bizley\jwt\Jwt;
 use bizley\jwt\JwtHttpBearerAuth;
 use Yii;
+use yii\rest\Controller;
 use yii\web\UnauthorizedHttpException;
 
 class BearerTest extends \PHPUnit\Framework\TestCase
@@ -46,6 +47,7 @@ class BearerTest extends \PHPUnit\Framework\TestCase
     {
         Yii::$app->request->headers->set('Authorization', 'Bearer InvalidToken');
 
+        /* @var $controller Controller */
         $controller = Yii::$app->createController('test-auth')[0];
 
         try {
@@ -68,6 +70,7 @@ class BearerTest extends \PHPUnit\Framework\TestCase
 
         Yii::$app->request->headers->set('Authorization', "Bearer $token");
 
+        /* @var $controller Controller */
         $controller = Yii::$app->createController('test-auth')[0];
 
         try {
@@ -94,6 +97,7 @@ class BearerTest extends \PHPUnit\Framework\TestCase
 
         Yii::$app->request->headers->set('Authorization', "Bearer $token");
 
+        /* @var $controller Controller */
         $controller = Yii::$app->createController('test-auth')[0];
 
         $this->assertEquals('test', $controller->run('filtered'));
@@ -120,6 +124,7 @@ class BearerTest extends \PHPUnit\Framework\TestCase
             return $identity;
         };
 
+        /* @var $controller Controller */
         $this->assertEquals('test', $controller->run('filtered'));
     }
 }
@@ -140,7 +145,7 @@ class TestAuthController extends \yii\rest\Controller
     }
 
     /**
-     * @return string
+     * @return string|null
      */
     public function actionFiltered(): ?string
     {

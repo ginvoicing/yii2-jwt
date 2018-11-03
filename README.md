@@ -25,10 +25,15 @@ Add `jwt` component to your configuration file:
         'components' => [
             'jwt' => [
                 'class' => \bizley\jwt\Jwt::class,
+                'key' => ... // Secret key string or path to the public key file
             ],
         ],
     ],
 
+
+Now you have got access to JWT library through `Yii::$app->jwt` and some helper methods like `getBuilder()`, 
+`getParser()`, and `getValidationData()`. You can validate your JSON Web Token by using `validateToken()` method and 
+check its signature with `verifyToken()`.
 
 ### REST authentication
 

@@ -4,7 +4,6 @@ namespace bizley\tests;
 
 use bizley\jwt\Jwt;
 use Lcobucci\JWT\Token;
-use Lcobucci\JWT\ValidationData;
 
 class TokenValidationTest extends \PHPUnit\Framework\TestCase
 {
@@ -36,34 +35,20 @@ class TokenValidationTest extends \PHPUnit\Framework\TestCase
     }
 
     /**
+     * @param int $issuedOffset
      * @return Token
      * @throws \yii\base\InvalidConfigException
      */
-    public function createToken(): Token
+    public function createToken(int $issuedOffset = 0): Token
     {
         return $this->getJwt()->getBuilder()
             ->setIssuer(static::$issuer)
             ->setAudience(static::$audience)
             ->setId(static::$id, true)
-            ->setIssuedAt(time())
+            ->setIssuedAt(time() + $issuedOffset)
             ->setExpiration(time() + 3600)
             ->set('uid', 1)
             ->getToken();
-    }
-
-    /**
-     * @return ValidationData
-     * @throws \yii\base\InvalidConfigException
-     */
-    public function getValidationData(): ValidationData
-    {
-        $data = $this->getJwt()->getValidationData();
-
-        $data->setIssuer(static::$issuer);
-        $data->setAudience(static::$audience);
-        $data->setId(static::$id);
-
-        return $data;
     }
 
     /**
@@ -71,10 +56,21 @@ class TokenValidationTest extends \PHPUnit\Framework\TestCase
      */
     public function testValidateToken(): void
     {
-        $token = $this->createToken();
-        $data = $this->getValidationData();
+        $this->assertTrue($this->getJwt()->validateToken($this->createToken(), null, [
+            'iss' => static::$issuer,
+            'aud' => static::$audience,
+            'jti' => static::$id,
+        ]));
+    }
 
-        $this->assertTrue($token->validate($data));
+    /**
+     * @throws \yii\base\InvalidConfigException
+     */
+    public function testValidateDiff(): void
+    {
+        $this->assertFalse($this->getJwt()->validateToken($this->createToken(), null, [
+            'aud' => 'different',
+        ]));
     }
 
     /**
@@ -82,11 +78,14 @@ class TokenValidationTest extends \PHPUnit\Framework\TestCase
      */
     public function testValidateTokenTimeout(): void
     {
-        $token = $this->createToken();
-        $data = $this->getValidationData();
+        $this->assertFalse($this->getJwt()->validateToken($this->createToken(), time() + 4000));
+    }
 
-        $data->setCurrentTime(time() + 4000);
-
-        $this->assertFalse($token->validate($data));
+    /**
+     * @throws \yii\base\InvalidConfigException
+     */
+    public function testValidateTokenPremature(): void
+    {
+        $this->assertFalse($this->getJwt()->validateToken($this->createToken(60)));
     }
 }

@@ -30,21 +30,20 @@ use yii\web\UnauthorizedHttpException;
 class JwtHttpBearerAuth extends \yii\filters\auth\HttpBearerAuth
 {
     /**
-     * @var string|array|Jwt JWT handler object, configuration array, or the application component ID of
-     * the JWT handler, or JWT handler object itself.
+     * @var string|array|Jwt application component ID of the JWT handler, configuration array, or JWT handler object itself.
      * By default it's assumes that component of ID "jwt" has been configured.
      */
     public $jwt = 'jwt';
 
     /**
-     * @var \Closure anonymous function that will return identity of user authenticated with the JWT payload information.
+     * @var \Closure anonymous function that should return identity of user authenticated with the JWT payload information.
      * It should have the following signature:
      *
      * ```php
      * function (Token $token)
      * ```
      *
-     * where $token is JWT token provided in the HTTP header.
+     * where $token is JSON Web Token provided in the HTTP header.
      * If $auth is not provided method User::loginByAccessToken() will be called instead.
      */
     public $auth;

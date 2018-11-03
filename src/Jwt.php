@@ -106,12 +106,31 @@ class Jwt extends \yii\base\Component
      * Validates token.
      * @param Token $token
      * @param int|null $currentTime UNIX timestamp or null for time()
+     * @param array $validationItems array of items to validate where key is an item's name and value is a string
+     * Available items (array keys) are:
+     * - 'jti': ID,
+     * - 'iss': issuer,
+     * - 'aud': audience,
+     * - 'sub': subject.
+     * This parameter is available from version 2.0.
      * @return bool
      */
-    public function validateToken(Token $token, ?int $currentTime = null): bool
+    public function validateToken(Token $token, ?int $currentTime = null, array $validationItems = []): bool
     {
         $data = $this->getValidationData($currentTime);
-        // @todo Add claims for validation
+
+        if (array_key_exists('jti', $validationItems)) {
+            $data->setId($validationItems['jti']);
+        }
+        if (array_key_exists('iss', $validationItems)) {
+            $data->setIssuer($validationItems['iss']);
+        }
+        if (array_key_exists('aud', $validationItems)) {
+            $data->setAudience($validationItems['aud']);
+        }
+        if (array_key_exists('sub', $validationItems)) {
+            $data->setSubject($validationItems['sub']);
+        }
 
         return $token->validate($data);
     }
@@ -144,7 +163,7 @@ class Jwt extends \yii\base\Component
      * @throws \LogicException when file path does not exist or is not readable
      * @since 2.0
      */
-    public function prepareKey($key): ?string
+    public function prepareKey(string $key): ?string
     {
         $keyPath = null;
 
