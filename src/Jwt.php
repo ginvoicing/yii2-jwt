@@ -75,6 +75,17 @@ class Jwt extends \yii\base\Component
     }
 
     /**
+     * Get Signer instance as per the algorithem
+     * @param string $alg
+     * @return Signer
+     */
+    public function getSigner($alg)
+    {
+        $class = $this->signers[$alg];
+        return new $class();
+    }
+
+    /**
      * Parses data and returns JSON Web Token.
      * @param string $data Raw JWT to be parsed
      * @param bool $validate whether token should be validated
