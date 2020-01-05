@@ -85,10 +85,40 @@ class Jwt extends \yii\base\Component
      * @param string $alg
      * @return Signer
      */
-    public function getSigner($alg)
+    public function getSigner(string $alg)
     {
         $class = $this->signers[$alg];
         return new $class();
+    }
+
+    /**
+     * Get JSON Web Key Set array for RSA256.
+     * @warning: only working for RSA256
+     * 
+     * @return array of jwks keys for RSA
+     */
+    
+    public function getKeySet(string $alg){
+      $encoder = new Encoder();
+      $keyInfo = openssl_pkey_get_details(
+        openssl_pkey_get_public(
+          file_get_contents($this->key)
+        )
+      );
+
+
+      return [
+          'keys' => [
+            [
+              'kty' => 'RSA',
+              'alg' => 'RSA256',
+              'use' => 'sig',
+              'n' => $encoder->base64UrlEncode($keyInfo['rsa']['n']),
+              'e' => $encoder->base64UrlEncode($keyInfo['rsa']['e']),
+              'kid' => $this->key_id
+            ],
+          ],
+        ];
     }
 
     /**
