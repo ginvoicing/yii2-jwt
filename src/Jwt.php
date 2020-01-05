@@ -43,6 +43,12 @@ class Jwt extends \yii\base\Component
     public $key;
 
     /**
+     * @var string Secret key id which will be used to identify the key. That can be used as kid in jkws
+     * 
+     */
+    public $key_id;
+
+    /**
      * Initializes builder.
      * @param Encoder|null $encoder
      * @param Factory|null $claimFactory
