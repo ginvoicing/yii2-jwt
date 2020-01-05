@@ -81,8 +81,10 @@ class Jwt extends \yii\base\Component
      * @param bool $verify whether token should be verified
      * @return Token|null
      */
-    public function loadToken(string $data, bool $validate = true, bool $verify = true): ?Token
+    public function loadToken(string $data, bool $validate = null, bool $verify = null): ?Token
     {
+      $validate = ($validate===null)?true:$validate;
+      $verify = ($verify===null)?true:$verify;
         try {
             $token = $this->getParser()->parse($data);
 
