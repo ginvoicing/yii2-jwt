@@ -16,6 +16,7 @@ use Lcobucci\JWT\Signer\Key;
 use Lcobucci\JWT\Token;
 use Lcobucci\JWT\Token\InvalidTokenStructure;
 use Lcobucci\JWT\Token\UnsupportedHeaderFound;
+use Lcobucci\JWT\Validation\Constraint;
 use Lcobucci\JWT\Validation\NoConstraintsGiven;
 use Lcobucci\JWT\Validation\RequiredConstraintsViolated;
 use Yii;
@@ -164,6 +165,13 @@ class Jwt extends Component
      */
     public $decoder;
 
+    /**
+     * @var array List of constraints that will be used to validate against.
+     * You can use instances of Lcobucci\JWT\Validation\Constraint or configuration arrays to be resolved as such.
+     * @since 3.0.0
+     */
+    public array $validationConstraints = [];
+
     private ?Configuration $configuration = null;
 
     /**
@@ -171,6 +179,8 @@ class Jwt extends Component
      */
     public function init(): void
     {
+        parent::init();
+
         if ($this->encoder !== null) {
             $this->encoder = Instance::ensure($this->encoder, Encoder::class);
         }
@@ -205,7 +215,7 @@ class Jwt extends Component
             }
         }
 
-        parent::init();
+        $this->prepareValidationConstraints();
     }
 
     /**
@@ -256,11 +266,7 @@ class Jwt extends Component
     public function assert($jwt): void
     {
         $configuration = $this->getConfiguration();
-        if ($jwt instanceof Token) {
-            $token = $jwt;
-        } else {
-            $token = $this->parse($jwt);
-        }
+        $token = $jwt instanceof Token ? $jwt : $this->parse($jwt);
         $constraints = $configuration->validationConstraints();
         $configuration->validator()->assert($token, ...$constraints);
     }
@@ -273,11 +279,7 @@ class Jwt extends Component
     public function validate($jwt): bool
     {
         $configuration = $this->getConfiguration();
-        if ($jwt instanceof Token) {
-            $token = $jwt;
-        } else {
-            $token = $this->parse($jwt);
-        }
+        $token = $jwt instanceof Token ? $jwt : $this->parse($jwt);
         $constraints = $configuration->validationConstraints();
 
         return $configuration->validator()->validate($token, ...$constraints);
@@ -370,5 +372,23 @@ class Jwt extends Component
         $signerInstance = Yii::createObject($this->signers[$signer]);
 
         return $signerInstance;
+    }
+
+    /**
+     * @throws InvalidConfigException
+     */
+    private function prepareValidationConstraints(): void
+    {
+        $constraints = [];
+
+        foreach ($this->validationConstraints as $constraint) {
+            if ($constraint instanceof Constraint) {
+                $constraints[] = $constraint;
+            } else {
+                $constraints[] = Yii::createObject($constraint);
+            }
+        }
+
+        $this->configuration->setValidationConstraints(...$constraints);
     }
 }
