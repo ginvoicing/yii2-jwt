@@ -8,7 +8,7 @@
 This extension provides the [JWT](https://github.com/lcobucci/jwt) integration for 
 [Yii 2 framework](https://www.yiiframework.com).
 
-> This is fork of [sizeg/yii2-jwt](https://github.com/sizeg/yii2-jwt) package
+> This is a fork of [sizeg/yii2-jwt](https://github.com/sizeg/yii2-jwt) package
 
 ## Installation
 
@@ -42,7 +42,7 @@ check its signature with `verifyToken()`.
 
 ### REST authentication
 
-Configure the `authenticator` behavior in controller.
+Configure the `authenticator` behavior in the controller.
 
     class ExampleController extends Controller
     {
@@ -63,7 +63,7 @@ For other configuration options refer to the [Yii 2 Guide](https://www.yiiframew
 
 ### JWT Basic Usage
 
-Please refer to the [lcobucci/jwt Documentation](https://github.com/lcobucci/jwt/blob/3.2/README.md).
+Please refer to the [lcobucci/jwt Documentation](https://lcobucci-jwt.readthedocs.io/en/latest/).
 
 ## JSON Web Tokens
 
