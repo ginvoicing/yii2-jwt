@@ -1,21 +1,29 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 namespace bizley\tests;
 
 use bizley\jwt\Jwt;
-use bizley\jwt\JwtHttpBearerAuth;
+use DateTimeImmutable;
+use Lcobucci\Clock\SystemClock;
+use Lcobucci\JWT\Token;
+use Lcobucci\JWT\Validation\Constraint\ValidAt;
+use PHPUnit\Framework\TestCase;
 use Yii;
+use yii\base\InvalidConfigException;
 use yii\rest\Controller;
+use yii\web\Application;
 use yii\web\UnauthorizedHttpException;
 
-class BearerTest extends \PHPUnit\Framework\TestCase
+class BearerTest extends TestCase
 {
     /**
-     * @throws \yii\base\InvalidConfigException
+     * @throws InvalidConfigException
      */
     protected function setUp(): void
     {
-        new \yii\web\Application([
+        new Application([
             'id' => 'test',
             'basePath' => __DIR__,
             'vendorPath' => __DIR__ . '/../vendor',
@@ -31,7 +39,8 @@ class BearerTest extends \PHPUnit\Framework\TestCase
                 ],
                 'jwt' => [
                     'class' => Jwt::class,
-                    'key' => 'secret',
+                    'signer' => Jwt::HS256,
+                    'signingKey' => 'secret',
                 ],
             ],
             'controllerMap' => [
@@ -40,8 +49,13 @@ class BearerTest extends \PHPUnit\Framework\TestCase
         ]);
     }
 
+    protected function getJwt(): Jwt
+    {
+        return Yii::$app->jwt;
+    }
+
     /**
-     * @throws \yii\base\InvalidConfigException
+     * @throws InvalidConfigException
      */
     public function testHttpBearerAuthInvalidToken(): void
     {
@@ -52,21 +66,26 @@ class BearerTest extends \PHPUnit\Framework\TestCase
 
         try {
             $controller->run('filtered');
-            $this->fail('Should throw UnauthorizedHttpException');
+            self::fail('Should throw UnauthorizedHttpException');
         } catch (UnauthorizedHttpException $e) {
-            $this->assertArrayHasKey('WWW-Authenticate', Yii::$app->getResponse()->getHeaders());
+            self::assertArrayHasKey('WWW-Authenticate', Yii::$app->getResponse()->getHeaders());
         }
     }
 
     /**
-     * @throws \yii\base\InvalidConfigException
+     * @throws InvalidConfigException
      */
     public function testHttpBearerAuthExpiredToken(): void
     {
-        $token = Yii::$app->jwt->getBuilder()
-            ->setIssuedAt(time() - 100)
-            ->setExpiration(time() - 50)
-            ->getToken();
+        $now = new DateTimeImmutable();
+
+        $this->getJwt()->getConfiguration()->setValidationConstraints(new ValidAt(SystemClock::fromSystemTimezone()));
+
+        $token = $this->getJwt()->getBuilder()
+            ->issuedAt($now->modify('-10 minutes'))
+            ->expiresAt($now->modify('-5 minutes'))
+            ->getToken($this->getJwt()->getConfiguration()->signer(), $this->getJwt()->getConfiguration()->signingKey())
+            ->toString();
 
         Yii::$app->request->headers->set('Authorization', "Bearer $token");
 
@@ -75,80 +94,64 @@ class BearerTest extends \PHPUnit\Framework\TestCase
 
         try {
             $controller->run('filtered');
-            $this->fail('Should throw UnauthorizedHttpException');
+            self::fail('Should throw UnauthorizedHttpException');
         } catch (UnauthorizedHttpException $e) {
-            $this->assertArrayHasKey('WWW-Authenticate', Yii::$app->getResponse()->getHeaders());
+            self::assertArrayHasKey('WWW-Authenticate', Yii::$app->getResponse()->getHeaders());
         }
     }
 
     /**
-     * @throws \yii\base\InvalidConfigException
+     * @throws InvalidConfigException
      */
     public function testHttpBearerAuth(): void
     {
-        $token = Yii::$app->jwt->getBuilder()
-                    ->setIssuedAt(time())
-                    ->setExpiration(time() + 3600)
-                    ->setSubject('test')
-                    ->sign(new \Lcobucci\JWT\Signer\Hmac\Sha256(), Yii::$app->jwt->key)
-                    ->getToken();
+        $now = new DateTimeImmutable();
 
-        UserIdentity::$token = (string) $token;
+        $this->getJwt()->getConfiguration()->setValidationConstraints(new ValidAt(SystemClock::fromSystemTimezone()));
+
+        $token = $this->getJwt()->getBuilder()
+            ->issuedAt($now)
+            ->expiresAt($now->modify('+1 hour'))
+            ->getToken($this->getJwt()->getConfiguration()->signer(), $this->getJwt()->getConfiguration()->signingKey())
+            ->toString();
+
+        UserIdentity::$token = $token;
 
         Yii::$app->request->headers->set('Authorization', "Bearer $token");
 
-        /* @var $controller Controller */
+        /** @var Controller $controller */
         $controller = Yii::$app->createController('test-auth')[0];
 
-        $this->assertEquals('test', $controller->run('filtered'));
+        self::assertEquals('test', $controller->run('filtered'));
     }
 
     /**
-     * @throws \yii\base\InvalidConfigException
+     * @throws InvalidConfigException
      */
     public function testHttpBearerAuthCustom(): void
     {
-        $token = Yii::$app->jwt->getBuilder()
-            ->setIssuedAt(time())
-            ->setExpiration(time() + 3600)
-            ->setSubject('test')
-            ->sign(new \Lcobucci\JWT\Signer\Hmac\Sha256(), Yii::$app->jwt->key)
-            ->getToken();
+        $now = new DateTimeImmutable();
 
-        Yii::$app->request->headers->set('Authorization', "Bearer $token");
+        $this->getJwt()->getConfiguration()->setValidationConstraints(new ValidAt(SystemClock::fromSystemTimezone()));
 
+        $token = $this->getJwt()->getBuilder()
+            ->relatedTo('test')
+            ->issuedAt($now)
+            ->expiresAt($now->modify('+1 hour'))
+            ->getToken($this->getJwt()->getConfiguration()->signer(), $this->getJwt()->getConfiguration()->signingKey());
+
+        $JWT = $token->toString();
+
+        Yii::$app->request->headers->set('Authorization', "Bearer $JWT");
+
+        /** @var TestAuthController $controller */
         $controller = Yii::$app->createController('test-auth')[0];
-        $controller->filterConfig['auth'] = function (\Lcobucci\JWT\Token $token) {
-            $identity = UserIdentity::findIdentity($token->getClaim('sub'));
+        $controller->filterConfig['auth'] = static function (Token $token) {
+            $identity = UserIdentity::findIdentity($token->claims()->get('sub'));
             Yii::$app->user->switchIdentity($identity);
             return $identity;
         };
 
-        /* @var $controller Controller */
-        $this->assertEquals('test', $controller->run('filtered'));
-    }
-}
-
-class TestAuthController extends \yii\rest\Controller
-{
-    public $filterConfig = [];
-
-    /**
-     * @return array
-     */
-    public function behaviors(): array
-    {
-        return ['authenticator' => array_merge(
-            ['class' => JwtHttpBearerAuth::class],
-            $this->filterConfig
-        )];
-    }
-
-    /**
-     * @return string|null
-     */
-    public function actionFiltered(): ?string
-    {
-        return Yii::$app->user->id;
+        self::assertEquals('test', $controller->run('filtered'));
     }
 }

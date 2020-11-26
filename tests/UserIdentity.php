@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 namespace bizley\tests;
 
@@ -8,7 +10,7 @@ use yii\web\IdentityInterface;
 
 class UserIdentity extends Component implements IdentityInterface
 {
-    public static $token;
+    public static string $token = '';
 
     /**
      * @param int|string $id
@@ -19,6 +21,7 @@ class UserIdentity extends Component implements IdentityInterface
         if ($id !== 'test') {
             return null;
         }
+
         return new static();
     }
 

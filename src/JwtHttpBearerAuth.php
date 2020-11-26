@@ -67,11 +67,11 @@ class JwtHttpBearerAuth extends HttpBearerAuth
     {
         parent::init();
 
-        $this->jwt = Instance::ensure($this->jwt, Jwt::class);
-
         if (empty($this->pattern)) {
             throw new InvalidConfigException('You must provide pattern to use to extract the HTTP authentication value!');
         }
+
+        $this->jwt = Instance::ensure($this->jwt, Jwt::class);
     }
 
     /**

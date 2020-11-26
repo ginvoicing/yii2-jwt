@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace bizley\jwt;
 
+use Closure;
 use Lcobucci\JWT\Builder;
 use Lcobucci\JWT\ClaimsFormatter;
 use Lcobucci\JWT\Configuration;
@@ -24,6 +25,7 @@ use yii\base\Component;
 use yii\base\InvalidConfigException;
 use yii\di\Instance;
 
+use function count;
 use function in_array;
 use function is_array;
 use function is_string;
@@ -55,13 +57,13 @@ class Jwt extends Component
     public const METHOD_BASE64 = 'base64';
     public const METHOD_FILE = 'file';
 
-    private const SYMMETRIC = 'symmetric';
-    private const ASYMMETRIC = 'asymmetric';
+    public const SYMMETRIC = 'symmetric';
+    public const ASYMMETRIC = 'asymmetric';
 
-    private const KEY = 'key';
-    private const STORE = 'store';
-    private const METHOD = 'method';
-    private const PASSPHRASE = 'passphrase';
+    public const KEY = 'key';
+    public const STORE = 'store';
+    public const METHOD = 'method';
+    public const PASSPHRASE = 'passphrase';
 
     /**
      * @var string|array|Key Signing key definition.
@@ -111,22 +113,24 @@ class Jwt extends Component
      * to do some testing but it's NOT recommended for production environments.
      * @since 3.0.0
      */
-    public ?string $signer = null;
+    public $signer;
 
     /**
-     * @var array Token signers
+     * @var array Default signers configuration. When instantiated it will use selected array to spread into
+     * `Yii::createObject($type, array $params = [])` method so the first array element is $type, and the second is $params.
+     * Since 3.0.0 configuration is done using arrays.
      * @since 2.0.0
      */
     public array $signers = [
-        self::HS256 => Signer\Hmac\Sha256::class,
-        self::HS384 => Signer\Hmac\Sha384::class,
-        self::HS512 => Signer\Hmac\Sha512::class,
-        self::RS256 => Signer\Rsa\Sha256::class,
-        self::RS384 => Signer\Rsa\Sha384::class,
-        self::RS512 => Signer\Rsa\Sha512::class,
-        self::ES256 => Signer\Ecdsa\Sha256::class,
-        self::ES384 => Signer\Ecdsa\Sha384::class,
-        self::ES512 => Signer\Ecdsa\Sha512::class,
+        self::HS256 => [Signer\Hmac\Sha256::class],
+        self::HS384 => [Signer\Hmac\Sha384::class],
+        self::HS512 => [Signer\Hmac\Sha512::class],
+        self::RS256 => [Signer\Rsa\Sha256::class],
+        self::RS384 => [Signer\Rsa\Sha384::class],
+        self::RS512 => [Signer\Rsa\Sha512::class],
+        self::ES256 => [Signer\Ecdsa\Sha256::class],
+        self::ES384 => [Signer\Ecdsa\Sha384::class],
+        self::ES512 => [Signer\Ecdsa\Sha512::class],
     ];
 
     /**
@@ -166,11 +170,14 @@ class Jwt extends Component
     public $decoder;
 
     /**
-     * @var array List of constraints that will be used to validate against.
-     * You can use instances of Lcobucci\JWT\Validation\Constraint or configuration arrays to be resolved as such.
+     * @var array|Closure|null List of constraints that will be used to validate against or an anonymous function that
+     * can be resolved as such list. The signature of the function should be `function(\bizley\jwt\Jwt $jwt)` where $jwt
+     * will be an instance of this component.
+     * For the constraints you can use instances of Lcobucci\JWT\Validation\Constraint or configuration arrays to be
+     * resolved as such.
      * @since 3.0.0
      */
-    public array $validationConstraints = [];
+    public $validationConstraints;
 
     private ?Configuration $configuration = null;
 
@@ -214,8 +221,6 @@ class Jwt extends Component
                 throw new InvalidConfigException('Invalid signer ID!');
             }
         }
-
-        $this->prepareValidationConstraints();
     }
 
     /**
@@ -261,26 +266,28 @@ class Jwt extends Component
      * @param string|Token $jwt JWT string or instance of Token
      * @throws RequiredConstraintsViolated When constraint is violated
      * @throws NoConstraintsGiven When no constraints are provided
+     * @throws InvalidConfigException
      * @since 3.0.0
      */
     public function assert($jwt): void
     {
         $configuration = $this->getConfiguration();
         $token = $jwt instanceof Token ? $jwt : $this->parse($jwt);
-        $constraints = $configuration->validationConstraints();
+        $constraints = $this->prepareValidationConstraints();
         $configuration->validator()->assert($token, ...$constraints);
     }
 
     /**
      * This method return false on first constraint violation
      * @param string|Token $jwt JWT string or instance of Token
+     * @throws InvalidConfigException
      * @since 3.0.0
      */
     public function validate($jwt): bool
     {
         $configuration = $this->getConfiguration();
         $token = $jwt instanceof Token ? $jwt : $this->parse($jwt);
-        $constraints = $configuration->validationConstraints();
+        $constraints = $this->prepareValidationConstraints();
 
         return $configuration->validator()->validate($token, ...$constraints);
     }
@@ -368,8 +375,12 @@ class Jwt extends Component
             return $signer;
         }
 
+        if (in_array($signer, [self::ES256, self::ES384, self::ES512], true)) {
+            Yii::$container->set(Signer\Ecdsa\SignatureConverter::class, Signer\Ecdsa\MultibyteStringConverter::class);
+        }
+
         /** @var Signer $signerInstance */
-        $signerInstance = Yii::createObject($this->signers[$signer]);
+        $signerInstance = Yii::createObject(...$this->signers[$signer]);
 
         return $signerInstance;
     }
@@ -377,18 +388,31 @@ class Jwt extends Component
     /**
      * @throws InvalidConfigException
      */
-    private function prepareValidationConstraints(): void
+    private function prepareValidationConstraints(): array
     {
-        $constraints = [];
-
-        foreach ($this->validationConstraints as $constraint) {
-            if ($constraint instanceof Constraint) {
-                $constraints[] = $constraint;
-            } else {
-                $constraints[] = Yii::createObject($constraint);
-            }
+        $configuredConstraints = $this->getConfiguration()->validationConstraints();
+        if (count($configuredConstraints)) {
+            return $configuredConstraints;
         }
 
-        $this->configuration->setValidationConstraints(...$constraints);
+        if (is_array($this->validationConstraints)) {
+            $constraints = [];
+
+            foreach ($this->validationConstraints as $constraint) {
+                if ($constraint instanceof Constraint) {
+                    $constraints[] = $constraint;
+                } else {
+                    $constraints[] = Yii::createObject(...$constraint);
+                }
+            }
+
+            return $constraints;
+        }
+
+        if ($this->validationConstraints instanceof Closure) {
+            return ($this->validationConstraints)($this);
+        }
+
+        return [];
     }
 }

@@ -1,11 +1,14 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 namespace bizley\tests;
 
 use bizley\jwt\Jwt;
 use Lcobucci\JWT\Token;
+use PHPUnit\Framework\TestCase;
 
-class TokenValidationTest extends \PHPUnit\Framework\TestCase
+class TokenValidationTest extends TestCase
 {
     public static $issuer = 'http://example.com';
     public static $audience = 'http://example.org';
