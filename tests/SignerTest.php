@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace bizley\tests;
 
 use bizley\jwt\Jwt;
+use Lcobucci\JWT\Signer\Hmac\Sha256;
+use Lcobucci\JWT\Signer\Key\InMemory;
 use Lcobucci\JWT\Validation\Constraint\SignedWith;
 use PHPUnit\Framework\TestCase;
 use Yii;
@@ -37,10 +39,34 @@ class SignerTest extends TestCase
                 ],
                 'none'
             ],
+            'Direct signer provided' => [
+                [
+                    'signer' => new Sha256(),
+                    'signingKey' => 'secret1',
+                ],
+                Jwt::HS256
+            ],
+            'Direct key provided' => [
+                [
+                    'signer' => Jwt::HS256,
+                    'signingKey' => InMemory::plainText('secret1')
+                ],
+                Jwt::HS256
+            ],
             'HS256' => [
                 [
                     'signer' => Jwt::HS256,
                     'signingKey' => 'secret1',
+                ],
+                Jwt::HS256
+            ],
+            'HS256 base64' => [
+                [
+                    'signer' => Jwt::HS256,
+                    'signingKey' => [
+                        Jwt::KEY => 'c2VjcmV0',
+                        Jwt::METHOD => JWT::METHOD_BASE64
+                    ],
                 ],
                 Jwt::HS256
             ],
@@ -93,6 +119,26 @@ class SignerTest extends TestCase
                     'signer' => Jwt::RS256,
                     'signingKey' => '@bizley/tests/data/rs256.key',
                     'verifyingKey' => '@bizley/tests/data/rs256.key.pub',
+                ],
+                Jwt::RS256
+            ],
+            'RS256 with file handler' => [
+                [
+                    'signer' => Jwt::RS256,
+                    'signingKey' => 'file://' . __DIR__ . '/data/rs256.key',
+                    'verifyingKey' => 'file://' . __DIR__ . '/data/rs256.key.pub',
+                ],
+                Jwt::RS256
+            ],
+            'RS256 with local file' => [
+                [
+                    'signer' => Jwt::RS256,
+                    'signingKey' => [
+                        Jwt::KEY => 'file://' . __DIR__ . '/data/rs256.key',
+                        Jwt::STORE => Jwt::STORE_LOCAL_FILE_REFERENCE,
+                        Jwt::METHOD => Jwt::METHOD_FILE,
+                    ],
+                    'verifyingKey' => 'file://' . __DIR__ . '/data/rs256.key.pub',
                 ],
                 Jwt::RS256
             ],
@@ -156,6 +202,27 @@ class SignerTest extends TestCase
         self::assertTrue($jwt->getConfiguration()->validator()->validate(
             $tokenParsed,
             new SignedWith($signer, $jwt->getConfiguration()->verificationKey()))
+        );
+    }
+
+    public function testInvalidSignerId(): void
+    {
+        $this->expectException(InvalidConfigException::class);
+        $this->getJwt(['signer' => 'Invalid']);
+    }
+
+    public function testInvalidKeyConfigCombination(): void
+    {
+        $this->expectException(InvalidConfigException::class);
+        $this->getJwt(
+            [
+                'signer' => Jwt::HS256,
+                'signingKey' => [
+                    Jwt::KEY => 'file://' . __DIR__ . '/data/rs256.key',
+                    Jwt::STORE => Jwt::STORE_LOCAL_FILE_REFERENCE,
+                    Jwt::METHOD => Jwt::METHOD_PLAIN,
+                ],
+            ]
         );
     }
 }

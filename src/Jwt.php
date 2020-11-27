@@ -275,8 +275,7 @@ class Jwt extends Component
         $configuration = $this->getConfiguration();
         $token = $jwt instanceof Token ? $jwt : $this->parse($jwt);
         $constraints = $this->prepareValidationConstraints();
-        $configuration->validator()->assert($token, ...$constraints);
-    }
+        $configuration->validator()->assert($token, ...$constraints);/* no break-line here to get 100% coverage... */}
 
     /**
      * This method return false on first constraint violation

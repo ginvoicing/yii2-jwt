@@ -8,11 +8,12 @@ use bizley\jwt\Jwt;
 use Closure;
 use Lcobucci\JWT\Token;
 use Lcobucci\JWT\Validation\Constraint\IdentifiedBy;
+use Lcobucci\JWT\Validation\NoConstraintsGiven;
 use PHPUnit\Framework\TestCase;
 use Yii;
 use yii\base\InvalidConfigException;
 
-class TokenConstraintsConfigTest extends TestCase
+class ConstraintsConfigTest extends TestCase
 {
     /**
      * @param array|Closure|null $validationConstraints
@@ -57,5 +58,13 @@ class TokenConstraintsConfigTest extends TestCase
         });
 
         self::assertTrue($jwt->validate($this->getToken($jwt)));
+    }
+
+    public function testDefaultConfig(): void
+    {
+        $jwt = $this->getJwt(null);
+
+        $this->expectException(NoConstraintsGiven::class);
+        $jwt->validate($this->getToken($jwt));
     }
 }

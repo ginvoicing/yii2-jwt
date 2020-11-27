@@ -5,6 +5,10 @@ declare(strict_types=1);
 namespace bizley\tests;
 
 use bizley\jwt\Jwt;
+use bizley\tests\stubs\TestAuthController;
+use bizley\tests\stubs\TestStub2Controller;
+use bizley\tests\stubs\TestStubController;
+use bizley\tests\stubs\UserIdentity;
 use DateTimeImmutable;
 use Lcobucci\Clock\SystemClock;
 use Lcobucci\JWT\Token;
@@ -45,6 +49,8 @@ class BearerTest extends TestCase
             ],
             'controllerMap' => [
                 'test-auth' => TestAuthController::class,
+                'test-stub' => TestStubController::class,
+                'test-stub2' => TestStub2Controller::class,
             ],
         ]);
     }
@@ -54,12 +60,44 @@ class BearerTest extends TestCase
         return Yii::$app->jwt;
     }
 
+    public function testEmptyPattern(): void
+    {
+        $this->expectException(InvalidConfigException::class);
+        $controller = Yii::$app->createController('test-stub')[0];
+        $controller->run('test');
+    }
+
     /**
      * @throws InvalidConfigException
      */
-    public function testHttpBearerAuthInvalidToken(): void
+    public function testHttpBearerAuthNoHeader(): void
     {
-        Yii::$app->request->headers->set('Authorization', 'Bearer InvalidToken');
+        /* @var $controller Controller */
+        $controller = Yii::$app->createController('test-auth')[0];
+
+        try {
+            $controller->run('filtered');
+            self::fail('Should throw UnauthorizedHttpException');
+        } catch (UnauthorizedHttpException $e) {
+            self::assertArrayHasKey('WWW-Authenticate', Yii::$app->getResponse()->getHeaders());
+        }
+    }
+
+    public function providerForInvalidHeaderToken(): array
+    {
+        return [
+            'invalid token' => ['Bearer InvalidToken'],
+            'invalid header value' => ['InvalidHeaderValue']
+        ];
+    }
+
+    /**
+     * @dataProvider providerForInvalidHeaderToken
+     * @throws InvalidConfigException
+     */
+    public function testHttpBearerAuthInvalidTokenOrHeader(string $headerValue): void
+    {
+        Yii::$app->request->headers->set('Authorization', $headerValue);
 
         /* @var $controller Controller */
         $controller = Yii::$app->createController('test-auth')[0];
@@ -153,5 +191,18 @@ class BearerTest extends TestCase
         };
 
         self::assertEquals('test', $controller->run('filtered'));
+    }
+
+    /**
+     * @throws InvalidConfigException
+     */
+    public function testHandlingEmptyFailure(): void
+    {
+        Yii::$app->request->headers->set('Authorization', "Bearer Token");
+
+        /** @var Controller $controller */
+        $controller = Yii::$app->createController('test-stub2')[0];
+
+        self::assertNull($controller->run('test'));
     }
 }

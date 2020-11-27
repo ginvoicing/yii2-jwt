@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace bizley\tests;
+namespace bizley\tests\stubs;
 
 use bizley\jwt\JwtHttpBearerAuth;
 use Yii;

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace bizley\tests;
+namespace bizley\tests\stubs;
 
 use yii\base\Component;
 use yii\base\NotSupportedException;
