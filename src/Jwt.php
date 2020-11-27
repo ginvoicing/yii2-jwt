@@ -29,7 +29,7 @@ use function count;
 use function in_array;
 use function is_array;
 use function is_string;
-use function strpos;
+use function strncmp;
 
 /**
  * JSON Web Token implementation based on lcobucci/jwt library v4.
@@ -307,13 +307,13 @@ class Jwt extends Component
         }
 
         if (is_string($key)) {
-            if (strpos($key, '@') === 0) {
+            if (strncmp($key, '@', 1) === 0) {
                 $keyConfig = [
                     self::KEY => 'file://' . Yii::getAlias($key),
                     self::STORE => self::STORE_IN_MEMORY,
                     self::METHOD => self::METHOD_FILE,
                 ];
-            } elseif (strpos($key, 'file://') === 0) {
+            } elseif (strncmp($key, 'file://', 7) === 0) {
                 $keyConfig = [
                     self::KEY => $key,
                     self::STORE => self::STORE_IN_MEMORY,

@@ -2,3 +2,4 @@
 /tests export-ignore
 /phpstan.sh export-ignore
 /phpunit.xml.dist export-ignore
+/infection.json.dist

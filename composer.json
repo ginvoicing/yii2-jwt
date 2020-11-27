@@ -23,6 +23,7 @@
     "yiisoft/yii2": ">=2.0.14 <2.1"
   },
   "require-dev": {
+    "infection/infection": "*",
     "phpstan/phpstan": "*",
     "phpunit/phpunit": "^9.3",
     "roave/security-advisories": "dev-master"

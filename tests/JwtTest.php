@@ -32,6 +32,18 @@ class JwtTest extends TestCase
         self::assertTrue($jwt->validate($token));
     }
 
+    public function testValidateSuccessWithStringToken(): void
+    {
+        $jwt = new Jwt();
+        $config = $jwt->getConfiguration();
+        $config->setValidationConstraints(new IdentifiedBy('abc'));
+        $token = $jwt->getBuilder()->identifiedBy('abc')->getToken(
+            $config->signer(),
+            $config->signingKey()
+        )->toString();
+        self::assertTrue($jwt->validate($token));
+    }
+
     public function testValidateFail(): void
     {
         $jwt = new Jwt();
@@ -50,6 +62,21 @@ class JwtTest extends TestCase
         $config = $jwt->getConfiguration();
         $config->setValidationConstraints(new IdentifiedBy('abc'));
         $token = $jwt->getBuilder()->identifiedBy('abc')->getToken($config->signer(), $config->signingKey());
+        $jwt->assert($token);
+    }
+
+    /**
+     * @doesNotPerformAssertions
+     */
+    public function testAssertSuccessWithStringToken(): void
+    {
+        $jwt = new Jwt();
+        $config = $jwt->getConfiguration();
+        $config->setValidationConstraints(new IdentifiedBy('abc'));
+        $token = $jwt->getBuilder()->identifiedBy('abc')->getToken(
+            $config->signer(),
+            $config->signingKey()
+        )->toString();
         $jwt->assert($token);
     }
 
@@ -115,5 +142,37 @@ class JwtTest extends TestCase
                 $jwt->getConfiguration()->signingKey()
             )->toString()
         );
+    }
+
+    public function testMethodsVisibility(): void
+    {
+        $jwt = new Jwt();
+        self::assertNotEmpty($jwt->getConfiguration());
+        self::assertNotEmpty($jwt->getBuilder());
+        self::assertNotEmpty($jwt->getParser());
+    }
+
+    public function providerForWrongKeyNames(): array
+    {
+        return [
+            '@' => ['_@bizley/tests/data/rs256.key'],
+            'file://' => ['_file://' . __DIR__ . '/data/rs256.key'],
+        ];
+    }
+
+    /**
+     * @dataProvider providerForWrongKeyNames
+     * @throws InvalidConfigException
+     */
+    public function testWrongFileKeyNameStartingCharacters(string $key): void
+    {
+        $jwt = new Jwt(
+            [
+                'signer' => Jwt::HS256,
+                'signingKey' => $key
+            ]
+        );
+        // name instead of file content
+        self::assertSame($key, $jwt->getConfiguration()->signingKey()->contents());
     }
 }
