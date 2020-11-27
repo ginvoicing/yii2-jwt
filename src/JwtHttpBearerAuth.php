@@ -42,7 +42,7 @@ use function get_class;
 class JwtHttpBearerAuth extends HttpBearerAuth
 {
     /**
-     * @var string|array|Jwt application component ID of the JWT handler, configuration array, or JWT handler object
+     * @var string|array<string, mixed>|Jwt application component ID of the JWT handler, configuration array, or JWT handler object
      * itself. By default it's assumes that component of ID "jwt" has been configured.
      */
     public $jwt = 'jwt';
@@ -70,8 +70,19 @@ class JwtHttpBearerAuth extends HttpBearerAuth
         if (empty($this->pattern)) {
             throw new InvalidConfigException('You must provide pattern to use to extract the HTTP authentication value!');
         }
+    }
 
-        $this->jwt = Instance::ensure($this->jwt, Jwt::class);
+    private ?Jwt $JWTComponent = null;
+
+    public function getJwtComponent(): Jwt
+    {
+        if ($this->JWTComponent === null) {
+            /** @var Jwt $jwt */
+            $jwt = Instance::ensure($this->jwt, Jwt::class);
+            $this->JWTComponent = $jwt;
+        }
+
+        return $this->JWTComponent;
     }
 
     /**
@@ -84,6 +95,7 @@ class JwtHttpBearerAuth extends HttpBearerAuth
      */
     public function authenticate($user, $request, $response): ?IdentityInterface // BC signature
     {
+        /** @var string|null $authHeader */
         $authHeader = $request->getHeaders()->get($this->header);
 
         if ($authHeader === null || !preg_match($this->pattern, $authHeader, $matches)) {
@@ -118,13 +130,13 @@ class JwtHttpBearerAuth extends HttpBearerAuth
     /**
      * Parses and validates the JWT token.
      * @param string $data data provided in HTTP header, presumably JWT
-     * @return Token|null
+     * @throws InvalidConfigException
      */
     public function processToken(string $data): ?Token
     {
-        $token = $this->jwt->parse($data);
+        $token = $this->getJwtComponent()->parse($data);
 
-        return $this->jwt->validate($token) ? $token : null;
+        return $this->getJwtComponent()->validate($token) ? $token : null;
     }
 
     /**

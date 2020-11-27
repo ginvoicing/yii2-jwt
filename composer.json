@@ -6,12 +6,12 @@
   "license": "Apache-2.0",
   "authors": [
     {
-      "name": "Dmitriy Demin",
-      "email": "sizemail@gmail.com"
-    },
-    {
       "name": "Paweł Bizley Brzozowski",
       "email": "pawel@positive.codes"
+    },
+    {
+      "name": "Dmitriy Demin",
+      "email": "sizemail@gmail.com"
     }
   ],
   "support": {
@@ -23,6 +23,7 @@
     "yiisoft/yii2": ">=2.0.14 <2.1"
   },
   "require-dev": {
+    "phpstan/phpstan": "*",
     "phpunit/phpunit": "^9.3",
     "roave/security-advisories": "dev-master"
   },

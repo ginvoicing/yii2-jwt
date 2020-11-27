@@ -66,7 +66,7 @@ class Jwt extends Component
     public const PASSPHRASE = 'passphrase';
 
     /**
-     * @var string|array|Key Signing key definition.
+     * @var string|array<string, string>|Key Signing key definition.
      * This can be a simple string, an instance of Key interface, or a configuration array.
      * The configuration takes the following array keys:
      * - 'key'        => Key's value or path to the key file.
@@ -99,7 +99,7 @@ class Jwt extends Component
     public $signingKey = '';
 
     /**
-     * @var string|array|Key Verifying key definition.
+     * @var string|array<string, string>|Key Verifying key definition.
      * $signingKey documentation you can find above applies here as well.
      * Symmetric algorithms (like HMAC) use a single key to sign and verify tokens so this property is ignored in that
      * case. Asymmetric algorithms (like RSA and ECDSA) use a private key to sign and a public key to verify.
@@ -116,7 +116,7 @@ class Jwt extends Component
     public $signer;
 
     /**
-     * @var array Default signers configuration. When instantiated it will use selected array to spread into
+     * @var array<string, array<mixed>> Default signers configuration. When instantiated it will use selected array to spread into
      * `Yii::createObject($type, array $params = [])` method so the first array element is $type, and the second is $params.
      * Since 3.0.0 configuration is done using arrays.
      * @since 2.0.0
@@ -134,7 +134,7 @@ class Jwt extends Component
     ];
 
     /**
-     * @var array Algorithm types.
+     * @var array<string, array<int, string>> Algorithm types.
      * @since 3.0.0
      */
     public array $algorithmTypes = [
@@ -154,7 +154,7 @@ class Jwt extends Component
     ];
 
     /**
-     * @var string|array|Encoder|null Custom encoder.
+     * @var string|array<string, mixed>|Encoder|null Custom encoder.
      * It can be component's ID, configuration array, or instance of Encoder.
      * In case it's not an instance, it must be resolvable to an Encoder's instance.
      * @since 3.0.0
@@ -162,7 +162,7 @@ class Jwt extends Component
     public $encoder;
 
     /**
-     * @var string|array|Decoder|null Custom decoder.
+     * @var string|array<string, mixed>|Decoder|null Custom decoder.
      * It can be component's ID, configuration array, or instance of Decoder.
      * In case it's not an instance, it must be resolvable to a Decoder's instance.
      * @since 3.0.0
@@ -170,9 +170,9 @@ class Jwt extends Component
     public $decoder;
 
     /**
-     * @var array|Closure|null List of constraints that will be used to validate against or an anonymous function that
-     * can be resolved as such list. The signature of the function should be `function(\bizley\jwt\Jwt $jwt)` where $jwt
-     * will be an instance of this component.
+     * @var array<array<mixed>>|Constraint[]|Closure|null List of constraints that will be used to validate against or
+     * an anonymous function that can be resolved as such list. The signature of the function should be
+     * `function(\bizley\jwt\Jwt $jwt)` where $jwt will be an instance of this component.
      * For the constraints you can use instances of Lcobucci\JWT\Validation\Constraint or configuration arrays to be
      * resolved as such.
      * @since 3.0.0
@@ -188,15 +188,8 @@ class Jwt extends Component
     {
         parent::init();
 
-        if ($this->encoder !== null) {
-            $this->encoder = Instance::ensure($this->encoder, Encoder::class);
-        }
-        if ($this->decoder !== null) {
-            $this->decoder = Instance::ensure($this->decoder, Decoder::class);
-        }
-
         if ($this->signer === null) {
-            $this->configuration = Configuration::forUnsecuredSigner($this->encoder, $this->decoder);
+            $this->configuration = Configuration::forUnsecuredSigner($this->prepareEncoder(), $this->prepareDecoder());
         } else {
             $signerId = $this->signer;
             if ($this->signer instanceof Signer) {
@@ -206,16 +199,16 @@ class Jwt extends Component
                 $this->configuration = Configuration::forSymmetricSigner(
                     $this->prepareSigner($this->signer),
                     $this->prepareKey($this->signingKey),
-                    $this->encoder,
-                    $this->decoder
+                    $this->prepareEncoder(),
+                    $this->prepareDecoder()
                 );
             } elseif (in_array($signerId, $this->algorithmTypes[self::ASYMMETRIC], true)) {
                 $this->configuration = Configuration::forAsymmetricSigner(
                     $this->prepareSigner($this->signer),
                     $this->prepareKey($this->signingKey),
                     $this->prepareKey($this->verifyingKey),
-                    $this->encoder,
-                    $this->decoder
+                    $this->prepareEncoder(),
+                    $this->prepareDecoder()
                 );
             } else {
                 throw new InvalidConfigException('Invalid signer ID!');
@@ -224,16 +217,22 @@ class Jwt extends Component
     }
 
     /**
+     * @throws InvalidConfigException
      * @since 3.0.0
      */
     public function getConfiguration(): Configuration
     {
+        if ($this->configuration === null) {
+            throw new InvalidConfigException('Configuration has not been set up. Did you call init()?');
+        }
+
         return $this->configuration;
     }
 
     /**
      * Since 3.0.0 this method is using different signature.
      * @see https://lcobucci-jwt.readthedocs.io/en/latest/issuing-tokens/ for details of using the builder.
+     * @throws InvalidConfigException
      */
     public function getBuilder(?ClaimsFormatter $claimFormatter = null): Builder
     {
@@ -243,6 +242,7 @@ class Jwt extends Component
     /**
      * Since 3.0.0 this method is using different signature.
      * @see https://lcobucci-jwt.readthedocs.io/en/latest/parsing-tokens/ for details of using the parser.
+     * @throws InvalidConfigException
      */
     public function getParser(): Parser
     {
@@ -253,6 +253,7 @@ class Jwt extends Component
      * @throws CannotDecodeContent When something goes wrong while decoding.
      * @throws InvalidTokenStructure When token string structure is invalid.
      * @throws UnsupportedHeaderFound When parsed token has an unsupported header.
+     * @throws InvalidConfigException
      * @since 3.0.0
      */
     public function parse(string $jwt): Token
@@ -294,7 +295,7 @@ class Jwt extends Component
 
     /**
      * Prepares key based on the definition.
-     * @param string|array|Key $key
+     * @param string|array<string, string>|Key $key
      * @return Key
      * @throws InvalidConfigException
      * @since 2.0.0
@@ -386,6 +387,7 @@ class Jwt extends Component
     }
 
     /**
+     * @return Constraint[]
      * @throws InvalidConfigException
      */
     private function prepareValidationConstraints(): array
@@ -402,7 +404,9 @@ class Jwt extends Component
                 if ($constraint instanceof Constraint) {
                     $constraints[] = $constraint;
                 } else {
-                    $constraints[] = Yii::createObject(...$constraint);
+                    /** @var Constraint $constraintInstance */
+                    $constraintInstance = Yii::createObject(...$constraint);
+                    $constraints[] = $constraintInstance;
                 }
             }
 
@@ -414,5 +418,35 @@ class Jwt extends Component
         }
 
         return [];
+    }
+
+    /**
+     * @throws InvalidConfigException
+     */
+    private function prepareEncoder(): ?Encoder
+    {
+        if ($this->encoder === null) {
+            return null;
+        }
+
+        /** @var Encoder $encoder */
+        $encoder = Instance::ensure($this->encoder, Encoder::class);
+
+        return $encoder;
+    }
+
+    /**
+     * @throws InvalidConfigException
+     */
+    private function prepareDecoder(): ?Decoder
+    {
+        if ($this->decoder === null) {
+            return null;
+        }
+
+        /** @var Decoder $decoder */
+        $decoder = Instance::ensure($this->decoder, Decoder::class);
+
+        return $decoder;
     }
 }
