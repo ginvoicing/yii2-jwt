@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 namespace bizley\jwt;
 
@@ -10,6 +12,7 @@ use Lcobucci\JWT\Parsing\Encoder;
 use Lcobucci\JWT\Token;
 use Lcobucci\JWT\ValidationData;
 use Yii;
+use yii\base\Component;
 
 /**
  * JSON Web Token implementation based on lcobucci/jwt library.
@@ -18,7 +21,7 @@ use Yii;
  * @author Dmitriy Demin <sizemail@gmail.com> original package
  * @author Paweł Bizley Brzozowski <pawel@positive.codes> since 2.0 (fork)
  */
-class Jwt extends \yii\base\Component
+class Jwt extends Component
 {
     /**
      * @var array Token signers
@@ -61,7 +64,7 @@ class Jwt extends \yii\base\Component
      */
     public function getParser(?Decoder $decoder = null, ?Factory $claimFactory = null): Parser
     {
-        return new Parser($decoder, $claimFactory);
+        return new Parser($decoder, $claimFactory); // $claimFactory not used anymore in lcobucci/jwt 3.4
     }
 
     /**

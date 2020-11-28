@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 namespace bizley\tests;
 
@@ -6,8 +8,10 @@ use bizley\jwt\Jwt;
 use Lcobucci\JWT\Builder;
 use Lcobucci\JWT\Signer;
 use Lcobucci\JWT\Token;
+use PHPUnit\Framework\TestCase;
+use yii\base\InvalidConfigException;
 
-abstract class SignerTestCase extends \PHPUnit\Framework\TestCase
+abstract class SignerTestCase extends TestCase
 {
     public $jwtConfig = [];
 
@@ -18,7 +22,7 @@ abstract class SignerTestCase extends \PHPUnit\Framework\TestCase
 
     /**
      * @return Jwt
-     * @throws \yii\base\InvalidConfigException
+     * @throws InvalidConfigException
      */
     public function getJwt(): Jwt
     {
@@ -40,7 +44,7 @@ abstract class SignerTestCase extends \PHPUnit\Framework\TestCase
 
     /**
      * @return Token
-     * @throws \yii\base\InvalidConfigException
+     * @throws InvalidConfigException
      */
     public function createTokenWithSignature(): Token
     {
@@ -48,10 +52,10 @@ abstract class SignerTestCase extends \PHPUnit\Framework\TestCase
     }
 
     /**
-     * @throws \yii\base\InvalidConfigException
+     * @throws InvalidConfigException
      */
     public function testValidateTokenWithSignature(): void
     {
-        $this->assertTrue($this->verify($this->createTokenWithSignature()));
+        self::assertTrue($this->verify($this->createTokenWithSignature()));
     }
 }

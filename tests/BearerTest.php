@@ -1,21 +1,26 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 namespace bizley\tests;
 
 use bizley\jwt\Jwt;
 use bizley\jwt\JwtHttpBearerAuth;
+use PHPUnit\Framework\TestCase;
 use Yii;
+use yii\base\InvalidConfigException;
 use yii\rest\Controller;
+use yii\web\Application;
 use yii\web\UnauthorizedHttpException;
 
-class BearerTest extends \PHPUnit\Framework\TestCase
+class BearerTest extends TestCase
 {
     /**
-     * @throws \yii\base\InvalidConfigException
+     * @throws InvalidConfigException
      */
     protected function setUp(): void
     {
-        new \yii\web\Application([
+        new Application([
             'id' => 'test',
             'basePath' => __DIR__,
             'vendorPath' => __DIR__ . '/../vendor',
@@ -41,7 +46,7 @@ class BearerTest extends \PHPUnit\Framework\TestCase
     }
 
     /**
-     * @throws \yii\base\InvalidConfigException
+     * @throws InvalidConfigException
      */
     public function testHttpBearerAuthInvalidToken(): void
     {
@@ -52,14 +57,14 @@ class BearerTest extends \PHPUnit\Framework\TestCase
 
         try {
             $controller->run('filtered');
-            $this->fail('Should throw UnauthorizedHttpException');
+            self::fail('Should throw UnauthorizedHttpException');
         } catch (UnauthorizedHttpException $e) {
-            $this->assertArrayHasKey('WWW-Authenticate', Yii::$app->getResponse()->getHeaders());
+            self::assertArrayHasKey('WWW-Authenticate', Yii::$app->getResponse()->getHeaders());
         }
     }
 
     /**
-     * @throws \yii\base\InvalidConfigException
+     * @throws InvalidConfigException
      */
     public function testHttpBearerAuthExpiredToken(): void
     {
@@ -75,14 +80,14 @@ class BearerTest extends \PHPUnit\Framework\TestCase
 
         try {
             $controller->run('filtered');
-            $this->fail('Should throw UnauthorizedHttpException');
+            self::fail('Should throw UnauthorizedHttpException');
         } catch (UnauthorizedHttpException $e) {
-            $this->assertArrayHasKey('WWW-Authenticate', Yii::$app->getResponse()->getHeaders());
+            self::assertArrayHasKey('WWW-Authenticate', Yii::$app->getResponse()->getHeaders());
         }
     }
 
     /**
-     * @throws \yii\base\InvalidConfigException
+     * @throws InvalidConfigException
      */
     public function testHttpBearerAuth(): void
     {
@@ -100,11 +105,11 @@ class BearerTest extends \PHPUnit\Framework\TestCase
         /* @var $controller Controller */
         $controller = Yii::$app->createController('test-auth')[0];
 
-        $this->assertEquals('test', $controller->run('filtered'));
+        self::assertEquals('test', $controller->run('filtered'));
     }
 
     /**
-     * @throws \yii\base\InvalidConfigException
+     * @throws InvalidConfigException
      */
     public function testHttpBearerAuthCustom(): void
     {
@@ -125,11 +130,11 @@ class BearerTest extends \PHPUnit\Framework\TestCase
         };
 
         /* @var $controller Controller */
-        $this->assertEquals('test', $controller->run('filtered'));
+        self::assertEquals('test', $controller->run('filtered'));
     }
 }
 
-class TestAuthController extends \yii\rest\Controller
+class TestAuthController extends Controller
 {
     public $filterConfig = [];
 

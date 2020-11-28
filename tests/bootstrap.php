@@ -1,6 +1,6 @@
 <?php
 
-error_reporting(-1);
+error_reporting(E_ALL);
 define('YII_ENABLE_ERROR_HANDLER', false);
 define('YII_DEBUG', true);
 

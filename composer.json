@@ -6,12 +6,12 @@
   "license": "Apache-2.0",
   "authors": [
     {
-      "name": "Dmitriy Demin",
-      "email": "sizemail@gmail.com"
-    },
-    {
       "name": "Pawel Bizley Brzozowski",
       "email": "pawel@positive.codes"
+    },
+    {
+      "name": "Dmitriy Demin",
+      "email": "sizemail@gmail.com"
     }
   ],
   "support": {
