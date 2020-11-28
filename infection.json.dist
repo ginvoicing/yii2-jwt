@@ -5,13 +5,16 @@
         ]
     },
     "logs": {
-        "text": "infection.log"
+        "text": "infection.log",
+        "badge": {
+            "branch": "master"
+        }
     },
     "mutators": {
         "@default": true,
         "MethodCallRemoval": {
             "ignore": [
-                "bizley\\jwt\\Jwt::init::189",
+                "bizley\\jwt\\Jwt::init::184",
                 "bizley\\jwt\\JwtHttpBearerAuth::init::68"
             ]
         }

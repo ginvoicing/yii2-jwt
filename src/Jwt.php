@@ -13,13 +13,8 @@ use Lcobucci\JWT\Encoder;
 use Lcobucci\JWT\Encoding\CannotDecodeContent;
 use Lcobucci\JWT\Parser;
 use Lcobucci\JWT\Signer;
-use Lcobucci\JWT\Signer\Key;
 use Lcobucci\JWT\Token;
-use Lcobucci\JWT\Token\InvalidTokenStructure;
-use Lcobucci\JWT\Token\UnsupportedHeaderFound;
-use Lcobucci\JWT\Validation\Constraint;
-use Lcobucci\JWT\Validation\NoConstraintsGiven;
-use Lcobucci\JWT\Validation\RequiredConstraintsViolated;
+use Lcobucci\JWT\Validation;
 use Yii;
 use yii\base\Component;
 use yii\base\InvalidConfigException;
@@ -66,8 +61,8 @@ class Jwt extends Component
     public const PASSPHRASE = 'passphrase';
 
     /**
-     * @var string|array<string, string>|Key Signing key definition.
-     * This can be a simple string, an instance of Key interface, or a configuration array.
+     * @var string|array<string, string>|Signer\Key Signing key definition.
+     * This can be a simple string, an instance of Key, or a configuration array.
      * The configuration takes the following array keys:
      * - 'key'        => Key's value or path to the key file.
      * - 'store'      => Either `Jwt::STORE_IN_MEMORY` or `Jwt::STORE_LOCAL_FILE_REFERENCE` - whether to keep the key in
@@ -99,7 +94,7 @@ class Jwt extends Component
     public $signingKey = '';
 
     /**
-     * @var string|array<string, string>|Key Verifying key definition.
+     * @var string|array<string, string>|Signer\Key Verifying key definition.
      * $signingKey documentation you can find above applies here as well.
      * Symmetric algorithms (like HMAC) use a single key to sign and verify tokens so this property is ignored in that
      * case. Asymmetric algorithms (like RSA and ECDSA) use a private key to sign and a public key to verify.
@@ -170,7 +165,7 @@ class Jwt extends Component
     public $decoder;
 
     /**
-     * @var array<array<mixed>>|Constraint[]|Closure|null List of constraints that will be used to validate against or
+     * @var array<array<mixed>>|Validation\Constraint[]|Closure|null List of constraints that will be used to validate against or
      * an anonymous function that can be resolved as such list. The signature of the function should be
      * `function(\bizley\jwt\Jwt $jwt)` where $jwt will be an instance of this component.
      * For the constraints you can use instances of Lcobucci\JWT\Validation\Constraint or configuration arrays to be
@@ -251,8 +246,8 @@ class Jwt extends Component
 
     /**
      * @throws CannotDecodeContent When something goes wrong while decoding.
-     * @throws InvalidTokenStructure When token string structure is invalid.
-     * @throws UnsupportedHeaderFound When parsed token has an unsupported header.
+     * @throws Token\InvalidTokenStructure When token string structure is invalid.
+     * @throws Token\UnsupportedHeaderFound When parsed token has an unsupported header.
      * @throws InvalidConfigException
      * @since 3.0.0
      */
@@ -265,8 +260,8 @@ class Jwt extends Component
      * This method goes through every single constraint in the set, groups all the violations, and throws an exception
      * with the grouped violations.
      * @param string|Token $jwt JWT string or instance of Token
-     * @throws RequiredConstraintsViolated When constraint is violated
-     * @throws NoConstraintsGiven When no constraints are provided
+     * @throws Validation\RequiredConstraintsViolated When constraint is violated
+     * @throws Validation\NoConstraintsGiven When no constraints are provided
      * @throws InvalidConfigException
      * @since 3.0.0
      */
@@ -295,15 +290,15 @@ class Jwt extends Component
 
     /**
      * Prepares key based on the definition.
-     * @param string|array<string, string>|Key $key
-     * @return Key
+     * @param string|array<string, string>|Signer\Key $key
+     * @return Signer\Key
      * @throws InvalidConfigException
      * @since 2.0.0
      * Since 3.0.0 this method is private and using different signature.
      */
-    private function prepareKey($key): Key
+    private function prepareKey($key): Signer\Key
     {
-        if ($key instanceof Key) {
+        if ($key instanceof Signer\Key) {
             return $key;
         }
 
@@ -353,20 +348,20 @@ class Jwt extends Component
 
         if ($store === self::STORE_IN_MEMORY) {
             if ($method === self::METHOD_BASE64) {
-                return Key\InMemory::base64Encoded($value, $passphrase);
+                return Signer\Key\InMemory::base64Encoded($value, $passphrase);
             }
             if ($method === self::METHOD_FILE) {
-                return Key\InMemory::file($value, $passphrase);
+                return Signer\Key\InMemory::file($value, $passphrase);
             }
 
-            return Key\InMemory::plainText($value, $passphrase);
+            return Signer\Key\InMemory::plainText($value, $passphrase);
         }
 
         if ($method !== self::METHOD_FILE) {
             throw new InvalidConfigException('Invalid key store and method combination!');
         }
 
-        return Key\LocalFileReference::file($value, $passphrase);
+        return Signer\Key\LocalFileReference::file($value, $passphrase);
     }
 
     /**
@@ -391,7 +386,7 @@ class Jwt extends Component
     }
 
     /**
-     * @return Constraint[]
+     * @return Validation\Constraint[]
      * @throws InvalidConfigException
      */
     private function prepareValidationConstraints(): array
@@ -405,10 +400,10 @@ class Jwt extends Component
             $constraints = [];
 
             foreach ($this->validationConstraints as $constraint) {
-                if ($constraint instanceof Constraint) {
+                if ($constraint instanceof Validation\Constraint) {
                     $constraints[] = $constraint;
                 } else {
-                    /** @var Constraint $constraintInstance */
+                    /** @var Validation\Constraint $constraintInstance */
                     $constraintInstance = Yii::createObject(...$constraint);
                     $constraints[] = $constraintInstance;
                 }
