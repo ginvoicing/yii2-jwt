@@ -94,3 +94,5 @@ jobs:
           mkdir -p build/logs
           vendor/bin/phpunit --coverage-xml=build/logs/coverage-xml --log-junit=build/logs/junit.xml
           vendor/bin/infection --threads=2 --coverage=build/logs --show-mutations --no-progress
+        env:
+          INFECTION_BADGE_API_KEY: ${{ secrets.INFECTION_BADGE_API_KEY }}
