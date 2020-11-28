@@ -1,11 +1,15 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 namespace bizley\tests;
 
 use bizley\jwt\Jwt;
 use Lcobucci\JWT\Token;
+use PHPUnit\Framework\TestCase;
+use yii\base\InvalidConfigException;
 
-class TokenValidationTest extends \PHPUnit\Framework\TestCase
+class TokenValidationTest extends TestCase
 {
     public static $issuer = 'http://example.com';
     public static $audience = 'http://example.org';
@@ -20,7 +24,7 @@ class TokenValidationTest extends \PHPUnit\Framework\TestCase
      * @param bool $reinit
      * @param array $config
      * @return Jwt
-     * @throws \yii\base\InvalidConfigException
+     * @throws InvalidConfigException
      */
     public function getJwt(bool $reinit = false, array $config = []): Jwt
     {
@@ -37,7 +41,7 @@ class TokenValidationTest extends \PHPUnit\Framework\TestCase
     /**
      * @param int $issuedOffset
      * @return Token
-     * @throws \yii\base\InvalidConfigException
+     * @throws InvalidConfigException
      */
     public function createToken(int $issuedOffset = 0): Token
     {
@@ -52,11 +56,11 @@ class TokenValidationTest extends \PHPUnit\Framework\TestCase
     }
 
     /**
-     * @throws \yii\base\InvalidConfigException
+     * @throws InvalidConfigException
      */
     public function testValidateToken(): void
     {
-        $this->assertTrue($this->getJwt()->validateToken($this->createToken(), null, [
+        self::assertTrue($this->getJwt()->validateToken($this->createToken(), null, [
             'iss' => static::$issuer,
             'aud' => static::$audience,
             'jti' => static::$id,
@@ -64,28 +68,28 @@ class TokenValidationTest extends \PHPUnit\Framework\TestCase
     }
 
     /**
-     * @throws \yii\base\InvalidConfigException
+     * @throws InvalidConfigException
      */
     public function testValidateDiff(): void
     {
-        $this->assertFalse($this->getJwt()->validateToken($this->createToken(), null, [
+        self::assertFalse($this->getJwt()->validateToken($this->createToken(), null, [
             'aud' => 'different',
         ]));
     }
 
     /**
-     * @throws \yii\base\InvalidConfigException
+     * @throws InvalidConfigException
      */
     public function testValidateTokenTimeout(): void
     {
-        $this->assertFalse($this->getJwt()->validateToken($this->createToken(), time() + 4000));
+        self::assertFalse($this->getJwt()->validateToken($this->createToken(), time() + 4000));
     }
 
     /**
-     * @throws \yii\base\InvalidConfigException
+     * @throws InvalidConfigException
      */
     public function testValidateTokenPremature(): void
     {
-        $this->assertFalse($this->getJwt()->validateToken($this->createToken(60)));
+        self::assertFalse($this->getJwt()->validateToken($this->createToken(60)));
     }
 }

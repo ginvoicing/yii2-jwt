@@ -1,10 +1,13 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 namespace bizley\tests;
 
 use Lcobucci\JWT\Builder;
 use Lcobucci\JWT\Signer;
 use Lcobucci\JWT\Token;
+use yii\base\InvalidConfigException;
 
 class RsaVerifyTest extends SignerTestCase
 {
@@ -23,7 +26,7 @@ class RsaVerifyTest extends SignerTestCase
     /**
      * @param Builder $builder
      * @return Builder
-     * @throws \yii\base\InvalidConfigException
+     * @throws InvalidConfigException
      */
     public function sign(Builder $builder): Builder
     {
@@ -33,7 +36,7 @@ class RsaVerifyTest extends SignerTestCase
     /**
      * @param Token $token
      * @return bool
-     * @throws \yii\base\InvalidConfigException
+     * @throws InvalidConfigException
      */
     public function verify(Token $token): bool
     {

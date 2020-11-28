@@ -1,12 +1,18 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 namespace bizley\jwt;
 
 use Lcobucci\JWT\Token;
 use yii\base\InvalidConfigException;
+use yii\di\Instance;
+use yii\filters\auth\HttpBearerAuth;
 use yii\web\IdentityInterface;
+use yii\web\Request;
 use yii\web\Response;
 use yii\web\UnauthorizedHttpException;
+use yii\web\User;
 
 /**
  * JwtHttpBearerAuth is an action filter that supports the authentication method based on HTTP Bearer JSON Web Token.
@@ -27,7 +33,7 @@ use yii\web\UnauthorizedHttpException;
  * @author Dmitriy Demin <sizemail@gmail.com> original package
  * @author Paweł Bizley Brzozowski <pawel@positive.codes> since 2.0 (fork)
  */
-class JwtHttpBearerAuth extends \yii\filters\auth\HttpBearerAuth
+class JwtHttpBearerAuth extends HttpBearerAuth
 {
     /**
      * @var string|array|Jwt application component ID of the JWT handler, configuration array, or JWT handler object itself.
@@ -55,7 +61,7 @@ class JwtHttpBearerAuth extends \yii\filters\auth\HttpBearerAuth
     {
         parent::init();
 
-        $this->jwt = \yii\di\Instance::ensure($this->jwt, Jwt::class);
+        $this->jwt = Instance::ensure($this->jwt, Jwt::class);
 
         if (empty($this->pattern)) {
             throw new InvalidConfigException('You must provide pattern to use to extract the HTTP authentication value!');
@@ -64,8 +70,8 @@ class JwtHttpBearerAuth extends \yii\filters\auth\HttpBearerAuth
 
     /**
      * Authenticates the current user.
-     * @param \yii\web\User $user
-     * @param \yii\web\Request $request
+     * @param User $user
+     * @param Request $request
      * @param Response $response
      * @return IdentityInterface the authenticated user identity. If authentication information is not provided, null will be returned.
      * @throws UnauthorizedHttpException if authentication information is provided but is invalid.
