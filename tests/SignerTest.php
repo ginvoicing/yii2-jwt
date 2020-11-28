@@ -130,6 +130,18 @@ class SignerTest extends TestCase
                 ],
                 Jwt::RS256
             ],
+            'RS256 with in-memory file' => [
+                [
+                    'signer' => Jwt::RS256,
+                    'signingKey' => [
+                        Jwt::KEY => 'file://' . __DIR__ . '/data/rs256.key',
+                        Jwt::STORE => Jwt::STORE_IN_MEMORY,
+                        Jwt::METHOD => Jwt::METHOD_FILE,
+                    ],
+                    'verifyingKey' => 'file://' . __DIR__ . '/data/rs256.key.pub',
+                ],
+                Jwt::RS256
+            ],
             'RS256 with local file' => [
                 [
                     'signer' => Jwt::RS256,

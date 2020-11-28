@@ -5,19 +5,24 @@ declare(strict_types=1);
 namespace bizley\tests;
 
 use bizley\jwt\Jwt;
+use bizley\jwt\JwtHttpBearerAuth;
 use bizley\tests\stubs\TestAuthController;
+use bizley\tests\stubs\TestJwtHttpBearerAuth;
 use bizley\tests\stubs\TestStub2Controller;
 use bizley\tests\stubs\TestStubController;
 use bizley\tests\stubs\UserIdentity;
 use DateTimeImmutable;
 use Lcobucci\Clock\SystemClock;
 use Lcobucci\JWT\Token;
+use Lcobucci\JWT\Validation\Constraint\IssuedBy;
 use Lcobucci\JWT\Validation\Constraint\ValidAt;
 use PHPUnit\Framework\TestCase;
 use Yii;
 use yii\base\InvalidConfigException;
+use yii\log\Logger;
 use yii\rest\Controller;
 use yii\web\Application;
+use yii\web\Response;
 use yii\web\UnauthorizedHttpException;
 
 class BearerTest extends TestCase
@@ -145,10 +150,14 @@ class BearerTest extends TestCase
     {
         $now = new DateTimeImmutable();
 
-        $this->getJwt()->getConfiguration()->setValidationConstraints(new ValidAt(SystemClock::fromSystemTimezone()));
+        $this->getJwt()->getConfiguration()->setValidationConstraints(
+            new ValidAt(SystemClock::fromSystemTimezone()),
+            new IssuedBy('test')
+        );
 
         $token = $this->getJwt()->getBuilder()
             ->issuedAt($now)
+            ->issuedBy('test')
             ->expiresAt($now->modify('+1 hour'))
             ->getToken($this->getJwt()->getConfiguration()->signer(), $this->getJwt()->getConfiguration()->signingKey())
             ->toString();
@@ -204,5 +213,54 @@ class BearerTest extends TestCase
         $controller = Yii::$app->createController('test-stub2')[0];
 
         self::assertNull($controller->run('test'));
+    }
+
+    /**
+     * @throws InvalidConfigException
+     */
+    public function testMethodsVisibility(): void
+    {
+        $filter = new JwtHttpBearerAuth(['jwt' => new Jwt()]);
+
+        $jwt = $filter->getJwtComponent();
+        $jwt->getConfiguration()->setValidationConstraints(new IssuedBy('test'));
+        self::assertNotEmpty($filter->processToken(
+            $jwt->getBuilder()->issuedBy('test')->getToken(
+                $jwt->getConfiguration()->signer(),
+                $jwt->getConfiguration()->signingKey()
+            )->toString()
+        ));
+    }
+
+    public function testFailVisibility(): void
+    {
+        $filter = new TestJwtHttpBearerAuth(['jwt' => new Jwt()]);
+        $filter->fail($this->createMock(Response::class));
+
+        self::assertSame(2, $filter->flag);
+    }
+
+    /**
+     * @throws InvalidConfigException
+     */
+    public function testFailedToken(): void
+    {
+        $logger = $this->createMock(Logger::class);
+        $logger->expects(self::exactly(2))->method('log')->withConsecutive(
+            ['Route to run: test-stub2/test', 8, 'yii\base\Controller::runAction'],
+            ['No constraint given.', 2, 'JwtHttpBearerAuth']
+        );
+        Yii::setLogger($logger);
+
+        $token = $this->getJwt()->getBuilder()
+            ->getToken($this->getJwt()->getConfiguration()->signer(), $this->getJwt()->getConfiguration()->signingKey())
+            ->toString();
+
+        Yii::$app->request->headers->set('Authorization', "Bearer $token");
+
+        /* @var $controller Controller */
+        $controller = Yii::$app->createController('test-stub2')[0];
+        $controller->run('test');
+        self::assertSame(14, $controller->flag);
     }
 }

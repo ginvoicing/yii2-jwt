@@ -10,7 +10,10 @@
     "mutators": {
         "@default": true,
         "MethodCallRemoval": {
-            "ignore": ["bizley\\jwt\\Jwt::init::189"]
+            "ignore": [
+                "bizley\\jwt\\Jwt::init::189",
+                "bizley\\jwt\\JwtHttpBearerAuth::init::68"
+            ]
         }
     },
     "minMsi": 100,

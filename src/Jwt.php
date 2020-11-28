@@ -29,7 +29,7 @@ use function count;
 use function in_array;
 use function is_array;
 use function is_string;
-use function strncmp;
+use function strpos;
 
 /**
  * JSON Web Token implementation based on lcobucci/jwt library v4.
@@ -275,7 +275,8 @@ class Jwt extends Component
         $configuration = $this->getConfiguration();
         $token = $jwt instanceof Token ? $jwt : $this->parse($jwt);
         $constraints = $this->prepareValidationConstraints();
-        $configuration->validator()->assert($token, ...$constraints);/* no break-line here to get 100% coverage... */}
+        $configuration->validator()->assert($token, ...$constraints);
+    }
 
     /**
      * This method return false on first constraint violation
@@ -307,13 +308,13 @@ class Jwt extends Component
         }
 
         if (is_string($key)) {
-            if (strncmp($key, '@', 1) === 0) {
+            if (strpos($key, '@') === 0) {
                 $keyConfig = [
                     self::KEY => 'file://' . Yii::getAlias($key),
                     self::STORE => self::STORE_IN_MEMORY,
                     self::METHOD => self::METHOD_FILE,
                 ];
-            } elseif (strncmp($key, 'file://', 7) === 0) {
+            } elseif (strpos($key, 'file://') === 0) {
                 $keyConfig = [
                     self::KEY => $key,
                     self::STORE => self::STORE_IN_MEMORY,
@@ -350,18 +351,22 @@ class Jwt extends Component
             throw new InvalidConfigException('Invalid key passphrase!');
         }
 
-        switch (true) {
-            case $store === self::STORE_IN_MEMORY && $method === self::METHOD_PLAIN:
-                return Key\InMemory::plainText($value, $passphrase);
-            case $store === self::STORE_IN_MEMORY && $method === self::METHOD_BASE64:
+        if ($store === self::STORE_IN_MEMORY) {
+            if ($method === self::METHOD_BASE64) {
                 return Key\InMemory::base64Encoded($value, $passphrase);
-            case $store === self::STORE_IN_MEMORY && $method === self::METHOD_FILE:
+            }
+            if ($method === self::METHOD_FILE) {
                 return Key\InMemory::file($value, $passphrase);
-            case $store === self::STORE_LOCAL_FILE_REFERENCE && $method === self::METHOD_FILE:
-                return Key\LocalFileReference::file($value, $passphrase);
-            default:
-                throw new InvalidConfigException('Invalid key store and method combination!');
+            }
+
+            return Key\InMemory::plainText($value, $passphrase);
         }
+
+        if ($method !== self::METHOD_FILE) {
+            throw new InvalidConfigException('Invalid key store and method combination!');
+        }
+
+        return Key\LocalFileReference::file($value, $passphrase);
     }
 
     /**
