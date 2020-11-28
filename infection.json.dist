@@ -1,0 +1,24 @@
+{
+    "source": {
+        "directories": [
+            "src"
+        ]
+    },
+    "logs": {
+        "text": "infection.log",
+        "badge": {
+            "branch": "master"
+        }
+    },
+    "mutators": {
+        "@default": true,
+        "MethodCallRemoval": {
+            "ignore": [
+                "bizley\\jwt\\Jwt::init::184",
+                "bizley\\jwt\\JwtHttpBearerAuth::init::68"
+            ]
+        }
+    },
+    "minMsi": 100,
+    "minCoveredMsi": 100
+}

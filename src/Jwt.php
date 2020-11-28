@@ -4,186 +4,448 @@ declare(strict_types=1);
 
 namespace bizley\jwt;
 
+use Closure;
 use Lcobucci\JWT\Builder;
-use Lcobucci\JWT\Claim\Factory;
+use Lcobucci\JWT\ClaimsFormatter;
+use Lcobucci\JWT\Configuration;
+use Lcobucci\JWT\Decoder;
+use Lcobucci\JWT\Encoder;
+use Lcobucci\JWT\Encoding\CannotDecodeContent;
 use Lcobucci\JWT\Parser;
-use Lcobucci\JWT\Parsing\Decoder;
-use Lcobucci\JWT\Parsing\Encoder;
+use Lcobucci\JWT\Signer;
 use Lcobucci\JWT\Token;
-use Lcobucci\JWT\ValidationData;
+use Lcobucci\JWT\Validation;
 use Yii;
 use yii\base\Component;
+use yii\base\InvalidConfigException;
+use yii\di\Instance;
+
+use function count;
+use function in_array;
+use function is_array;
+use function is_string;
+use function strpos;
 
 /**
- * JSON Web Token implementation based on lcobucci/jwt library.
+ * JSON Web Token implementation based on lcobucci/jwt library v4.
  * @see https://github.com/lcobucci/jwt
  *
- * @author Dmitriy Demin <sizemail@gmail.com> original package
  * @author Paweł Bizley Brzozowski <pawel@positive.codes> since 2.0 (fork)
+ * @author Dmitriy Demin <sizemail@gmail.com> original package
  */
 class Jwt extends Component
 {
+    public const HS256 = 'HS256';
+    public const HS384 = 'HS384';
+    public const HS512 = 'HS512';
+    public const RS256 = 'RS256';
+    public const RS384 = 'RS384';
+    public const RS512 = 'RS512';
+    public const ES256 = 'ES256';
+    public const ES384 = 'ES384';
+    public const ES512 = 'ES512';
+
+    public const STORE_IN_MEMORY = 'in_memory';
+    public const STORE_LOCAL_FILE_REFERENCE = 'local_file_reference';
+
+    public const METHOD_PLAIN = 'plain';
+    public const METHOD_BASE64 = 'base64';
+    public const METHOD_FILE = 'file';
+
+    public const SYMMETRIC = 'symmetric';
+    public const ASYMMETRIC = 'asymmetric';
+
+    public const KEY = 'key';
+    public const STORE = 'store';
+    public const METHOD = 'method';
+    public const PASSPHRASE = 'passphrase';
+
     /**
-     * @var array Token signers
-     * @since 2.0
+     * @var string|array<string, string>|Signer\Key Signing key definition.
+     * This can be a simple string, an instance of Key, or a configuration array.
+     * The configuration takes the following array keys:
+     * - 'key'        => Key's value or path to the key file.
+     * - 'store'      => Either `Jwt::STORE_IN_MEMORY` or `Jwt::STORE_LOCAL_FILE_REFERENCE` - whether to keep the key in
+     *                   the memory or as a reference to a local file.
+     * - 'method'     => `Jwt::METHOD_PLAIN`, `Jwt::METHOD_BASE64`, or `Jwt::METHOD_FILE` - whether the key is a plain
+     *                   text, base64 encoded text, or a file.
+     *                   In case the 'store' is set to `Jwt::STORE_LOCAL_FILE_REFERENCE`, only `Jwt::METHOD_FILE` method
+     *                   is available.
+     * - 'passphrase' => Key's passphrase.
+     * In case a simple string is provided (and it does not start with 'file://' or '@') the following configuration
+     * is assumed:
+     * [
+     *  'key' => // the original given value,
+     *  'store' => Jwt::STORE_IN_MEMORY,
+     *  'method' => Jwt::METHOD_PLAIN,
+     *  'passphrase' => '',
+     * ]
+     * In case a simple string is provided and it does start with 'file://' (direct file path) or '@' (Yii alias)
+     * the following configuration is assumed:
+     * [
+     *  'key' => // the original given value,
+     *  'store' => Jwt::STORE_IN_MEMORY,
+     *  'method' => Jwt::METHOD_FILE,
+     *  'passphrase' => '',
+     * ]
+     * If you want to override the assumed configuration, you must provide it directly.
+     * @since 3.0.0
      */
-    public $signers = [
-        'HS256' => \Lcobucci\JWT\Signer\Hmac\Sha256::class,
-        'HS384' => \Lcobucci\JWT\Signer\Hmac\Sha384::class,
-        'HS512' => \Lcobucci\JWT\Signer\Hmac\Sha512::class,
-        'RS256' => \Lcobucci\JWT\Signer\Rsa\Sha256::class,
-        'RS384' => \Lcobucci\JWT\Signer\Rsa\Sha384::class,
-        'RS512' => \Lcobucci\JWT\Signer\Rsa\Sha512::class,
-        'ES256' => \Lcobucci\JWT\Signer\Ecdsa\Sha256::class,
-        'ES384' => \Lcobucci\JWT\Signer\Ecdsa\Sha384::class,
-        'ES512' => \Lcobucci\JWT\Signer\Ecdsa\Sha512::class,
+    public $signingKey = '';
+
+    /**
+     * @var string|array<string, string>|Signer\Key Verifying key definition.
+     * $signingKey documentation you can find above applies here as well.
+     * Symmetric algorithms (like HMAC) use a single key to sign and verify tokens so this property is ignored in that
+     * case. Asymmetric algorithms (like RSA and ECDSA) use a private key to sign and a public key to verify.
+     * @since 3.0.0
+     */
+    public $verifyingKey = '';
+
+    /**
+     * @var string|Signer|null Signer ID or Signer instance to be used for signing/verifying.
+     * See $signers for available values. In case it's not set, no algorithm will be used, which may be handy if you want
+     * to do some testing but it's NOT recommended for production environments.
+     * @since 3.0.0
+     */
+    public $signer;
+
+    /**
+     * @var array<string, array<mixed>> Default signers configuration. When instantiated it will use selected array to spread into
+     * `Yii::createObject($type, array $params = [])` method so the first array element is $type, and the second is $params.
+     * Since 3.0.0 configuration is done using arrays.
+     * @since 2.0.0
+     */
+    public array $signers = [
+        self::HS256 => [Signer\Hmac\Sha256::class],
+        self::HS384 => [Signer\Hmac\Sha384::class],
+        self::HS512 => [Signer\Hmac\Sha512::class],
+        self::RS256 => [Signer\Rsa\Sha256::class],
+        self::RS384 => [Signer\Rsa\Sha384::class],
+        self::RS512 => [Signer\Rsa\Sha512::class],
+        self::ES256 => [Signer\Ecdsa\Sha256::class],
+        self::ES384 => [Signer\Ecdsa\Sha384::class],
+        self::ES512 => [Signer\Ecdsa\Sha512::class],
     ];
 
     /**
-     * @var string Secret key string or path to the public key file.
-     * For path you can use Yii alias (starting with `@` character) or direct file path (starting with `file://`).
+     * @var array<string, array<int, string>> Algorithm types.
+     * @since 3.0.0
      */
-    public $key;
+    public array $algorithmTypes = [
+        self::SYMMETRIC => [
+            self::HS256,
+            self::HS384,
+            self::HS512,
+        ],
+        self::ASYMMETRIC => [
+            self::RS256,
+            self::RS384,
+            self::RS512,
+            self::ES256,
+            self::ES384,
+            self::ES512,
+        ],
+    ];
 
     /**
-     * Initializes builder.
-     * @param Encoder|null $encoder
-     * @param Factory|null $claimFactory
-     * @return Builder
+     * @var string|array<string, mixed>|Encoder|null Custom encoder.
+     * It can be component's ID, configuration array, or instance of Encoder.
+     * In case it's not an instance, it must be resolvable to an Encoder's instance.
+     * @since 3.0.0
      */
-    public function getBuilder(?Encoder $encoder = null, ?Factory $claimFactory = null): Builder
+    public $encoder;
+
+    /**
+     * @var string|array<string, mixed>|Decoder|null Custom decoder.
+     * It can be component's ID, configuration array, or instance of Decoder.
+     * In case it's not an instance, it must be resolvable to a Decoder's instance.
+     * @since 3.0.0
+     */
+    public $decoder;
+
+    /**
+     * @var array<array<mixed>>|Validation\Constraint[]|Closure|null List of constraints that will be used to validate against or
+     * an anonymous function that can be resolved as such list. The signature of the function should be
+     * `function(\bizley\jwt\Jwt $jwt)` where $jwt will be an instance of this component.
+     * For the constraints you can use instances of Lcobucci\JWT\Validation\Constraint or configuration arrays to be
+     * resolved as such.
+     * @since 3.0.0
+     */
+    public $validationConstraints;
+
+    private ?Configuration $configuration = null;
+
+    /**
+     * @throws InvalidConfigException
+     */
+    public function init(): void
     {
-        return new Builder($encoder, $claimFactory);
+        parent::init();
+
+        if ($this->signer === null) {
+            $this->configuration = Configuration::forUnsecuredSigner($this->prepareEncoder(), $this->prepareDecoder());
+        } else {
+            $signerId = $this->signer;
+            if ($this->signer instanceof Signer) {
+                $signerId = $this->signer->algorithmId();
+            }
+            if (in_array($signerId, $this->algorithmTypes[self::SYMMETRIC], true)) {
+                $this->configuration = Configuration::forSymmetricSigner(
+                    $this->prepareSigner($this->signer),
+                    $this->prepareKey($this->signingKey),
+                    $this->prepareEncoder(),
+                    $this->prepareDecoder()
+                );
+            } elseif (in_array($signerId, $this->algorithmTypes[self::ASYMMETRIC], true)) {
+                $this->configuration = Configuration::forAsymmetricSigner(
+                    $this->prepareSigner($this->signer),
+                    $this->prepareKey($this->signingKey),
+                    $this->prepareKey($this->verifyingKey),
+                    $this->prepareEncoder(),
+                    $this->prepareDecoder()
+                );
+            } else {
+                throw new InvalidConfigException('Invalid signer ID!');
+            }
+        }
     }
 
     /**
-     * Initializes parser.
-     * @param Decoder|null $decoder
-     * @param Factory|null $claimFactory
-     * @return Parser
+     * @throws InvalidConfigException
+     * @since 3.0.0
      */
-    public function getParser(?Decoder $decoder = null, ?Factory $claimFactory = null): Parser
+    public function getConfiguration(): Configuration
     {
-        return new Parser($decoder, $claimFactory); // $claimFactory not used anymore in lcobucci/jwt 3.4
+        if ($this->configuration === null) {
+            throw new InvalidConfigException('Configuration has not been set up. Did you call init()?');
+        }
+
+        return $this->configuration;
     }
 
     /**
-     * Initializes validation data wrapper.
-     * @param int|null $currentTime UNIX timestamp or null for time()
-     * @return ValidationData
+     * Since 3.0.0 this method is using different signature.
+     * @see https://lcobucci-jwt.readthedocs.io/en/latest/issuing-tokens/ for details of using the builder.
+     * @throws InvalidConfigException
      */
-    public function getValidationData(?int $currentTime = null): ValidationData
+    public function getBuilder(?ClaimsFormatter $claimFormatter = null): Builder
     {
-        return new ValidationData($currentTime);
+        return $this->getConfiguration()->builder($claimFormatter);
     }
 
     /**
-     * Parses data and returns JSON Web Token.
-     * @param string $data Raw JWT to be parsed
-     * @param bool $validate whether token should be validated
-     * @param bool $verify whether token should be verified
-     * @return Token|null
+     * Since 3.0.0 this method is using different signature.
+     * @see https://lcobucci-jwt.readthedocs.io/en/latest/parsing-tokens/ for details of using the parser.
+     * @throws InvalidConfigException
      */
-    public function loadToken(string $data, bool $validate = true, bool $verify = true): ?Token
+    public function getParser(): Parser
     {
-        try {
-            $token = $this->getParser()->parse($data);
+        return $this->getConfiguration()->parser();
+    }
 
-            if ($validate && !$this->validateToken($token)) {
-                return null;
+    /**
+     * @throws CannotDecodeContent When something goes wrong while decoding.
+     * @throws Token\InvalidTokenStructure When token string structure is invalid.
+     * @throws Token\UnsupportedHeaderFound When parsed token has an unsupported header.
+     * @throws InvalidConfigException
+     * @since 3.0.0
+     */
+    public function parse(string $jwt): Token
+    {
+        return $this->getParser()->parse($jwt);
+    }
+
+    /**
+     * This method goes through every single constraint in the set, groups all the violations, and throws an exception
+     * with the grouped violations.
+     * @param string|Token $jwt JWT string or instance of Token
+     * @throws Validation\RequiredConstraintsViolated When constraint is violated
+     * @throws Validation\NoConstraintsGiven When no constraints are provided
+     * @throws InvalidConfigException
+     * @since 3.0.0
+     */
+    public function assert($jwt): void
+    {
+        $configuration = $this->getConfiguration();
+        $token = $jwt instanceof Token ? $jwt : $this->parse($jwt);
+        $constraints = $this->prepareValidationConstraints();
+        $configuration->validator()->assert($token, ...$constraints);
+    }
+
+    /**
+     * This method return false on first constraint violation
+     * @param string|Token $jwt JWT string or instance of Token
+     * @throws InvalidConfigException
+     * @since 3.0.0
+     */
+    public function validate($jwt): bool
+    {
+        $configuration = $this->getConfiguration();
+        $token = $jwt instanceof Token ? $jwt : $this->parse($jwt);
+        $constraints = $this->prepareValidationConstraints();
+
+        return $configuration->validator()->validate($token, ...$constraints);
+    }
+
+    /**
+     * Prepares key based on the definition.
+     * @param string|array<string, string>|Signer\Key $key
+     * @return Signer\Key
+     * @throws InvalidConfigException
+     * @since 2.0.0
+     * Since 3.0.0 this method is private and using different signature.
+     */
+    private function prepareKey($key): Signer\Key
+    {
+        if ($key instanceof Signer\Key) {
+            return $key;
+        }
+
+        if (is_string($key)) {
+            if (strpos($key, '@') === 0) {
+                $keyConfig = [
+                    self::KEY => 'file://' . Yii::getAlias($key),
+                    self::STORE => self::STORE_IN_MEMORY,
+                    self::METHOD => self::METHOD_FILE,
+                ];
+            } elseif (strpos($key, 'file://') === 0) {
+                $keyConfig = [
+                    self::KEY => $key,
+                    self::STORE => self::STORE_IN_MEMORY,
+                    self::METHOD => self::METHOD_FILE,
+                ];
+            } else {
+                $keyConfig = [
+                    self::KEY => $key,
+                    self::STORE => self::STORE_IN_MEMORY,
+                    self::METHOD => self::METHOD_PLAIN,
+                ];
+            }
+        } elseif (is_array($key)) {
+            $keyConfig = $key;
+        } else {
+            throw new InvalidConfigException('Invalid key configuration!');
+        }
+
+        $value = $keyConfig[self::KEY] ?? '';
+        $store = $keyConfig[self::STORE] ?? self::STORE_IN_MEMORY;
+        $method = $keyConfig[self::METHOD] ?? self::METHOD_PLAIN;
+        $passphrase = $keyConfig[self::PASSPHRASE] ?? '';
+
+        if (!is_string($value)) {
+            throw new InvalidConfigException('Invalid key value!');
+        }
+        if (!in_array($store, [self::STORE_IN_MEMORY, self::STORE_LOCAL_FILE_REFERENCE], true)) {
+            throw new InvalidConfigException('Invalid key store!');
+        }
+        if (!in_array($method, [self::METHOD_PLAIN, self::METHOD_BASE64, self::METHOD_FILE], true)) {
+            throw new InvalidConfigException('Invalid key method!');
+        }
+        if (!is_string($passphrase)) {
+            throw new InvalidConfigException('Invalid key passphrase!');
+        }
+
+        if ($store === self::STORE_IN_MEMORY) {
+            if ($method === self::METHOD_BASE64) {
+                return Signer\Key\InMemory::base64Encoded($value, $passphrase);
+            }
+            if ($method === self::METHOD_FILE) {
+                return Signer\Key\InMemory::file($value, $passphrase);
             }
 
-            if ($verify && !$this->verifyToken($token)) {
-                return null;
+            return Signer\Key\InMemory::plainText($value, $passphrase);
+        }
+
+        if ($method !== self::METHOD_FILE) {
+            throw new InvalidConfigException('Invalid key store and method combination!');
+        }
+
+        return Signer\Key\LocalFileReference::file($value, $passphrase);
+    }
+
+    /**
+     * @param string|Signer $signer
+     * @return Signer
+     * @throws InvalidConfigException
+     */
+    private function prepareSigner($signer): Signer
+    {
+        if ($signer instanceof Signer) {
+            return $signer;
+        }
+
+        if (in_array($signer, [self::ES256, self::ES384, self::ES512], true)) {
+            Yii::$container->set(Signer\Ecdsa\SignatureConverter::class, Signer\Ecdsa\MultibyteStringConverter::class);
+        }
+
+        /** @var Signer $signerInstance */
+        $signerInstance = Yii::createObject(...$this->signers[$signer]);
+
+        return $signerInstance;
+    }
+
+    /**
+     * @return Validation\Constraint[]
+     * @throws InvalidConfigException
+     */
+    private function prepareValidationConstraints(): array
+    {
+        $configuredConstraints = $this->getConfiguration()->validationConstraints();
+        if (count($configuredConstraints)) {
+            return $configuredConstraints;
+        }
+
+        if (is_array($this->validationConstraints)) {
+            $constraints = [];
+
+            foreach ($this->validationConstraints as $constraint) {
+                if ($constraint instanceof Validation\Constraint) {
+                    $constraints[] = $constraint;
+                } else {
+                    /** @var Validation\Constraint $constraintInstance */
+                    $constraintInstance = Yii::createObject(...$constraint);
+                    $constraints[] = $constraintInstance;
+                }
             }
 
-            return $token;
+            return $constraints;
+        }
 
-        } catch (\Throwable $exception) {
-            Yii::warning('Error while parsing JWT: ' . $exception->getMessage(), 'jwt');
+        if ($this->validationConstraints instanceof Closure) {
+            return ($this->validationConstraints)($this);
+        }
+
+        return [];
+    }
+
+    /**
+     * @throws InvalidConfigException
+     */
+    private function prepareEncoder(): ?Encoder
+    {
+        if ($this->encoder === null) {
             return null;
         }
+
+        /** @var Encoder $encoder */
+        $encoder = Instance::ensure($this->encoder, Encoder::class);
+
+        return $encoder;
     }
 
     /**
-     * Validates token.
-     * @param Token $token
-     * @param int|null $currentTime UNIX timestamp or null for time()
-     * @param array $validationItems array of items to validate where key is an item's name and value is a string
-     * Available items (array keys) are:
-     * - 'jti': ID,
-     * - 'iss': issuer,
-     * - 'aud': audience,
-     * - 'sub': subject.
-     * This parameter is available from version 2.0.
-     * @return bool
+     * @throws InvalidConfigException
      */
-    public function validateToken(Token $token, ?int $currentTime = null, array $validationItems = []): bool
+    private function prepareDecoder(): ?Decoder
     {
-        $data = $this->getValidationData($currentTime);
-
-        if (array_key_exists('jti', $validationItems)) {
-            $data->setId($validationItems['jti']);
-        }
-        if (array_key_exists('iss', $validationItems)) {
-            $data->setIssuer($validationItems['iss']);
-        }
-        if (array_key_exists('aud', $validationItems)) {
-            $data->setAudience($validationItems['aud']);
-        }
-        if (array_key_exists('sub', $validationItems)) {
-            $data->setSubject($validationItems['sub']);
+        if ($this->decoder === null) {
+            return null;
         }
 
-        return $token->validate($data);
-    }
+        /** @var Decoder $decoder */
+        $decoder = Instance::ensure($this->decoder, Decoder::class);
 
-    /**
-     * Verifies token.
-     * @param Token $token
-     * @return bool
-     * @throws \yii\base\NotSupportedException
-     * @throws \yii\base\InvalidConfigException
-     */
-    public function verifyToken(Token $token): bool
-    {
-        $alg = $token->getHeader('alg');
-
-        if (!array_key_exists($alg, $this->signers)) {
-            throw new \yii\base\NotSupportedException("Signer algorithm '{$alg}' not supported!");
-        }
-
-        /* @var $signer \Lcobucci\JWT\Signer */
-        $signer = Yii::createObject($this->signers[$alg]);
-
-        return $token->verify($signer, $this->prepareKey($this->key));
-    }
-
-    /**
-     * Detects key file path and resolves Yii alias if given.
-     * @param string $key
-     * @return string|null
-     * @throws \LogicException when file path does not exist or is not readable
-     * @since 2.0
-     */
-    public function prepareKey(string $key): ?string
-    {
-        $keyPath = null;
-
-        if (strpos($key, '@') === 0) {
-            $keyPath = 'file://' . Yii::getAlias($key);
-        } elseif (strpos($key, 'file://') === 0) {
-            $keyPath = $key;
-        }
-
-        if ($keyPath !== null) {
-            if (!file_exists($keyPath) || !is_readable($keyPath)) {
-                throw new \LogicException(sprintf('Key path "%s" does not exist or is not readable', $keyPath));
-            }
-
-            return $keyPath;
-        }
-
-        return $key;
+        return $decoder;
     }
 }

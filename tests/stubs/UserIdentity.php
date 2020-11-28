@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace bizley\tests;
+namespace bizley\tests\stubs;
 
 use yii\base\Component;
 use yii\base\NotSupportedException;
@@ -10,7 +10,7 @@ use yii\web\IdentityInterface;
 
 class UserIdentity extends Component implements IdentityInterface
 {
-    public static $token;
+    public static string $token = '';
 
     /**
      * @param int|string $id
@@ -21,6 +21,7 @@ class UserIdentity extends Component implements IdentityInterface
         if ($id !== 'test') {
             return null;
         }
+
         return new static();
     }
 
