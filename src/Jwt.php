@@ -305,7 +305,7 @@ class Jwt extends Component
         if (is_string($key)) {
             if (strpos($key, '@') === 0) {
                 $keyConfig = [
-                    self::KEY => 'file://' . Yii::getAlias($key),
+                    self::KEY => Yii::getAlias($key),
                     self::STORE => self::STORE_IN_MEMORY,
                     self::METHOD => self::METHOD_FILE,
                 ];
