@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace bizley\tests;
 
 use bizley\jwt\Jwt;
+use bizley\tests\stubs\YiiConstraint;
 use Closure;
 use Lcobucci\JWT\Token;
 use Lcobucci\JWT\Validation\Constraint;
@@ -49,6 +50,13 @@ class ConstraintsConfigTest extends TestCase
     public function testArrayConfigWithArray(): void
     {
         $jwt = $this->getJwt([[IdentifiedBy::class, ['test']], [RelatedTo::class, ['test']]]);
+
+        self::assertTrue($jwt->validate($this->getToken($jwt)));
+    }
+
+    public function testArrayConfigWithYiiArray(): void
+    {
+        $jwt = $this->getJwt([['class' => YiiConstraint::class, 'test' => 'yii']]);
 
         self::assertTrue($jwt->validate($this->getToken($jwt)));
     }
