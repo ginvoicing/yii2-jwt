@@ -20,10 +20,12 @@ use yii\base\Component;
 use yii\base\InvalidConfigException;
 use yii\di\Instance;
 
+use function array_keys;
 use function count;
 use function in_array;
 use function is_array;
 use function is_string;
+use function reset;
 use function strpos;
 
 /**
@@ -104,15 +106,16 @@ class Jwt extends Component
 
     /**
      * @var string|Signer|null Signer ID or Signer instance to be used for signing/verifying.
-     * See $signers for available values. In case it's not set, no algorithm will be used, which may be handy if you want
-     * to do some testing but it's NOT recommended for production environments.
+     * See $signers for available values. In case it's not set, no algorithm will be used, which may be handy if you
+     * want to do some testing but it's NOT recommended for production environments.
      * @since 3.0.0
      */
     public $signer;
 
     /**
-     * @var array<string, array<mixed>> Default signers configuration. When instantiated it will use selected array to spread into
-     * `Yii::createObject($type, array $params = [])` method so the first array element is $type, and the second is $params.
+     * @var array<string, array<mixed>> Default signers configuration. When instantiated it will use selected array to
+     * spread into `Yii::createObject($type, array $params = [])` method so the first array element is $type, and
+     * the second is $params.
      * Since 3.0.0 configuration is done using arrays.
      * @since 2.0.0
      */
@@ -165,8 +168,8 @@ class Jwt extends Component
     public $decoder;
 
     /**
-     * @var array<array<mixed>>|Validation\Constraint[]|Closure|null List of constraints that will be used to validate against or
-     * an anonymous function that can be resolved as such list. The signature of the function should be
+     * @var array<array<mixed>>|Validation\Constraint[]|Closure|null List of constraints that will be used to validate
+     * against or an anonymous function that can be resolved as such list. The signature of the function should be
      * `function(\bizley\jwt\Jwt $jwt)` where $jwt will be an instance of this component.
      * For the constraints you can use instances of Lcobucci\JWT\Validation\Constraint or configuration arrays to be
      * resolved as such.
@@ -209,6 +212,22 @@ class Jwt extends Component
                 throw new InvalidConfigException('Invalid signer ID!');
             }
         }
+    }
+
+    /**
+     * @param array<mixed> $config
+     * @return object
+     * @throws InvalidConfigException
+     */
+    private function buildObjectFromArray(array $config): object
+    {
+        $keys = array_keys($config);
+        if (is_string(reset($keys))) {
+            // most probably Yii-style config
+            return Yii::createObject($config);
+        }
+
+        return Yii::createObject(...$config);
     }
 
     /**
@@ -380,7 +399,7 @@ class Jwt extends Component
         }
 
         /** @var Signer $signerInstance */
-        $signerInstance = Yii::createObject(...$this->signers[$signer]);
+        $signerInstance = $this->buildObjectFromArray($this->signers[$signer]);
 
         return $signerInstance;
     }
@@ -404,7 +423,7 @@ class Jwt extends Component
                     $constraints[] = $constraint;
                 } else {
                     /** @var Validation\Constraint $constraintInstance */
-                    $constraintInstance = Yii::createObject(...$constraint);
+                    $constraintInstance = $this->buildObjectFromArray($constraint);
                     $constraints[] = $constraintInstance;
                 }
             }
