@@ -8,6 +8,7 @@ use bizley\jwt\Jwt;
 use bizley\tests\stubs\JwtStub;
 use Lcobucci\JWT\Decoder;
 use Lcobucci\JWT\Encoder;
+use Lcobucci\JWT\Signer;
 use Lcobucci\JWT\Validation\Constraint\IdentifiedBy;
 use Lcobucci\JWT\Validation\RequiredConstraintsViolated;
 use PHPUnit\Framework\TestCase;
@@ -16,6 +17,48 @@ use yii\base\InvalidConfigException;
 
 class JwtTest extends TestCase
 {
+    public function testAvailableSigners(): void
+    {
+        self::assertSame(
+            [
+                Jwt::HS256 => [Signer\Hmac\Sha256::class],
+                Jwt::HS384 => [Signer\Hmac\Sha384::class],
+                Jwt::HS512 => [Signer\Hmac\Sha512::class],
+                Jwt::RS256 => [Signer\Rsa\Sha256::class],
+                Jwt::RS384 => [Signer\Rsa\Sha384::class],
+                Jwt::RS512 => [Signer\Rsa\Sha512::class],
+                Jwt::ES256 => [Signer\Ecdsa\Sha256::class],
+                Jwt::ES384 => [Signer\Ecdsa\Sha384::class],
+                Jwt::ES512 => [Signer\Ecdsa\Sha512::class],
+                Jwt::EDDSA => [Signer\Eddsa::class],
+            ],
+            (new Jwt())->signers,
+        );
+    }
+
+    public function testAvailableAlgorithmTypes(): void
+    {
+        self::assertSame(
+            [
+                Jwt::SYMMETRIC => [
+                    Jwt::HS256,
+                    Jwt::HS384,
+                    Jwt::HS512,
+                ],
+                Jwt::ASYMMETRIC => [
+                    Jwt::RS256,
+                    Jwt::RS384,
+                    Jwt::RS512,
+                    Jwt::ES256,
+                    Jwt::ES384,
+                    Jwt::ES512,
+                    Jwt::EDDSA,
+                ],
+            ],
+            (new Jwt())->algorithmTypes,
+        );
+    }
+
     public function testNoInit(): void
     {
         $this->expectException(InvalidConfigException::class);

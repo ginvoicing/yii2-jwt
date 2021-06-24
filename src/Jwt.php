@@ -46,6 +46,7 @@ class Jwt extends Component
     public const ES256 = 'ES256';
     public const ES384 = 'ES384';
     public const ES512 = 'ES512';
+    public const EDDSA = 'EdDSA';
 
     public const STORE_IN_MEMORY = 'in_memory';
     public const STORE_LOCAL_FILE_REFERENCE = 'local_file_reference';
@@ -129,6 +130,7 @@ class Jwt extends Component
         self::ES256 => [Signer\Ecdsa\Sha256::class],
         self::ES384 => [Signer\Ecdsa\Sha384::class],
         self::ES512 => [Signer\Ecdsa\Sha512::class],
+        self::EDDSA => [Signer\Eddsa::class],
     ];
 
     /**
@@ -148,6 +150,7 @@ class Jwt extends Component
             self::ES256,
             self::ES384,
             self::ES512,
+            self::EDDSA,
         ],
     ];
 

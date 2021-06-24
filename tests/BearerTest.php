@@ -15,7 +15,7 @@ use DateTimeImmutable;
 use Lcobucci\Clock\SystemClock;
 use Lcobucci\JWT\Token;
 use Lcobucci\JWT\Validation\Constraint\IssuedBy;
-use Lcobucci\JWT\Validation\Constraint\ValidAt;
+use Lcobucci\JWT\Validation\Constraint\LooseValidAt;
 use PHPUnit\Framework\TestCase;
 use Yii;
 use yii\base\InvalidConfigException;
@@ -122,7 +122,7 @@ class BearerTest extends TestCase
     {
         $now = new DateTimeImmutable();
 
-        $this->getJwt()->getConfiguration()->setValidationConstraints(new ValidAt(SystemClock::fromSystemTimezone()));
+        $this->getJwt()->getConfiguration()->setValidationConstraints(new LooseValidAt(SystemClock::fromSystemTimezone()));
 
         $token = $this->getJwt()->getBuilder()
             ->issuedAt($now->modify('-10 minutes'))
@@ -151,7 +151,7 @@ class BearerTest extends TestCase
         $now = new DateTimeImmutable();
 
         $this->getJwt()->getConfiguration()->setValidationConstraints(
-            new ValidAt(SystemClock::fromSystemTimezone()),
+            new LooseValidAt(SystemClock::fromSystemTimezone()),
             new IssuedBy('test')
         );
 
@@ -179,7 +179,7 @@ class BearerTest extends TestCase
     {
         $now = new DateTimeImmutable();
 
-        $this->getJwt()->getConfiguration()->setValidationConstraints(new ValidAt(SystemClock::fromSystemTimezone()));
+        $this->getJwt()->getConfiguration()->setValidationConstraints(new LooseValidAt(SystemClock::fromSystemTimezone()));
 
         $token = $this->getJwt()->getBuilder()
             ->relatedTo('test')

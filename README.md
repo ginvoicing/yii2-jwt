@@ -48,6 +48,7 @@ Symmetric:
 Asymmetric:
 - RSA (RS256, RS384, RS512)
 - ECDSA (ES256, ES384, ES512)
+- EdDSA (since 3.1.0)
 
 Signer IDs are available as constants (like Jwt::HS256).
 
