@@ -296,4 +296,25 @@ cOJPB1eW2ny/UXZfeLwheuQfkr5grlke4Z0JiNd86CJ9NOnNIbMDl2PSj7cjMDQ=
             $jwt->getConfiguration()->signingKey()->contents()
         );
     }
+
+    public function providerForSignerSignatureConverter(): array
+    {
+        return [
+            Jwt::ES256 => [Jwt::ES256],
+            Jwt::ES384 => [Jwt::ES384],
+            Jwt::ES512 => [Jwt::ES512],
+        ];
+    }
+
+    /**
+     * @dataProvider providerForSignerSignatureConverter
+     */
+    public function testPrepareSignatureConverter(string $signerId): void
+    {
+        new Jwt(['signer' => $signerId]);
+        $this->assertInstanceOf(
+            Signer\Ecdsa\MultibyteStringConverter::class,
+            \Yii::$container->get(Signer\Ecdsa\SignatureConverter::class)
+        );
+    }
 }
