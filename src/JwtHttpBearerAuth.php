@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace bizley\jwt;
 
-use Closure;
+use Lcobucci\JWT\Encoding\CannotDecodeContent;
 use Lcobucci\JWT\Token;
+use Lcobucci\JWT\Validation;
 use Throwable;
 use Yii;
 use yii\base\InvalidConfigException;
@@ -42,14 +43,14 @@ use function get_class;
 class JwtHttpBearerAuth extends HttpBearerAuth
 {
     /**
-     * @var string|array<string, mixed>|Jwt application component ID of the JWT handler, configuration array, or JWT handler object
-     * itself. By default it's assumes that component of ID "jwt" has been configured.
+     * @var string|array<string, mixed>|Jwt application component ID of the JWT handler, configuration array, or
+     * JWT handler object itself. By default, it's assumes that component of ID "jwt" has been configured.
      */
     public $jwt = 'jwt';
 
     /**
-     * @var Closure|null anonymous function that should return identity of user authenticated with the JWT payload
-     * information. It should have the following signature:
+     * @var (callable(): mixed)|null anonymous function that should return identity of user authenticated with the JWT
+     * payload information. It should have the following signature:
      *
      * ```php
      * function (Token $token)
@@ -58,7 +59,7 @@ class JwtHttpBearerAuth extends HttpBearerAuth
      * where $token is JSON Web Token provided in the HTTP header.
      * If $auth is not provided method User::loginByAccessToken() will be called instead.
      */
-    public ?Closure $auth = null;
+    public $auth;
 
     /**
      * @throws InvalidConfigException
@@ -91,6 +92,13 @@ class JwtHttpBearerAuth extends HttpBearerAuth
      * @param Request $request
      * @param Response $response
      * @return IdentityInterface|null the authenticated user identity. If authentication information is not provided, null will be returned.
+     * @throws InvalidConfigException When JWT configuration has not been properly initialized.
+     * @throws CannotDecodeContent When something goes wrong while decoding token.
+     * @throws Token\InvalidTokenStructure When token string structure is invalid.
+     * @throws Token\UnsupportedHeaderFound When parsed token has an unsupported header.
+     * @throws Validation\RequiredConstraintsViolated When constraint is not present in token.
+     * @throws Validation\NoConstraintsGiven When no constraints are provided.
+     * @throws Validation\ConstraintViolation When constraint is violated.
      * @throws UnauthorizedHttpException if authentication information is provided but is invalid.
      */
     public function authenticate($user, $request, $response): ?IdentityInterface // BC signature
@@ -109,19 +117,19 @@ class JwtHttpBearerAuth extends HttpBearerAuth
             $token = $this->processToken($matches[1]);
         } catch (Throwable $exception) {
             Yii::warning($exception->getMessage(), 'JwtHttpBearerAuth');
-            $this->fail($response);
+            throw $exception;
         }
 
         if ($token !== null) {
-            if ($this->auth instanceof Closure) {
+            if (is_callable($this->auth, true)) {
                 $identity = call_user_func($this->auth, $token);
             } else {
                 $identity = $user->loginByAccessToken($token->toString(), get_class($this));
             }
         }
 
-        if ($identity === null) {
-            $this->fail($response);
+        if (!$identity instanceof IdentityInterface) {
+            return null;
         }
 
         return $identity;
