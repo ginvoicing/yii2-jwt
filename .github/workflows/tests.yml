@@ -19,7 +19,7 @@ jobs:
       - name: Install PHP
         uses: shivammathur/setup-php@2.17.0
         with:
-          php-version: '7.4'
+          php-version: '8.0'
           extensions: mbstring, intl
           coverage: none
         env:
@@ -41,7 +41,7 @@ jobs:
         run: composer update --prefer-dist --no-interaction --no-progress --optimize-autoloader
 
       - name: PHPStan tests
-        run: vendor/bin/phpstan analyze -l 8 -a vendor/yiisoft/yii2/Yii.php --no-progress src
+        run: vendor/bin/phpstan analyze -l 9 -a vendor/yiisoft/yii2/Yii.php --no-progress src
 
   Infection:
     name: PHP ${{ matrix.php }}

@@ -438,6 +438,7 @@ class Jwt extends Component
         }
 
         if (is_callable($this->validationConstraints)) {
+            /** @phpstan-ignore-next-line */
             return call_user_func($this->validationConstraints, $this);
         }
 
