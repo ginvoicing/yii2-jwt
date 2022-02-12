@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace bizley\jwt;
 
-use Closure;
 use Lcobucci\JWT\Builder;
 use Lcobucci\JWT\ClaimsFormatter;
 use Lcobucci\JWT\Configuration;
@@ -24,6 +23,7 @@ use function array_keys;
 use function count;
 use function in_array;
 use function is_array;
+use function is_callable;
 use function is_string;
 use function reset;
 use function strpos;
@@ -49,7 +49,7 @@ class Jwt extends Component
     public const EDDSA = 'EdDSA';
 
     public const STORE_IN_MEMORY = 'in_memory';
-    public const STORE_LOCAL_FILE_REFERENCE = 'local_file_reference';
+    public const STORE_LOCAL_FILE_REFERENCE = 'local_file_reference'; // deprecated since 3.2.0, will be removed in 4.0.0
 
     public const METHOD_PLAIN = 'plain';
     public const METHOD_BASE64 = 'base64';
@@ -68,28 +68,28 @@ class Jwt extends Component
      * This can be a simple string, an instance of Key, or a configuration array.
      * The configuration takes the following array keys:
      * - 'key'        => Key's value or path to the key file.
-     * - 'store'      => Either `Jwt::STORE_IN_MEMORY` or `Jwt::STORE_LOCAL_FILE_REFERENCE` - whether to keep the key in
-     *                   the memory or as a reference to a local file.
+     * - 'store'      => Either `Jwt::STORE_IN_MEMORY` or `Jwt::STORE_LOCAL_FILE_REFERENCE` (deprecated) -
+     *                   whether to keep the key in the memory or as a reference to a local file.
      * - 'method'     => `Jwt::METHOD_PLAIN`, `Jwt::METHOD_BASE64`, or `Jwt::METHOD_FILE` - whether the key is a plain
      *                   text, base64 encoded text, or a file.
-     *                   In case the 'store' is set to `Jwt::STORE_LOCAL_FILE_REFERENCE`, only `Jwt::METHOD_FILE` method
-     *                   is available.
+     *                   In case the 'store' is set to `Jwt::STORE_LOCAL_FILE_REFERENCE` (deprecated), only
+     *                   `Jwt::METHOD_FILE` method is available.
      * - 'passphrase' => Key's passphrase.
      * In case a simple string is provided (and it does not start with 'file://' or '@') the following configuration
      * is assumed:
      * [
-     *  'key' => // the original given value,
-     *  'store' => Jwt::STORE_IN_MEMORY,
-     *  'method' => Jwt::METHOD_PLAIN,
-     *  'passphrase' => '',
+     *      'key' => // the original given value,
+     *      'store' => Jwt::STORE_IN_MEMORY,
+     *      'method' => Jwt::METHOD_PLAIN,
+     *      'passphrase' => '',
      * ]
      * In case a simple string is provided and it does start with 'file://' (direct file path) or '@' (Yii alias)
      * the following configuration is assumed:
      * [
-     *  'key' => // the original given value,
-     *  'store' => Jwt::STORE_IN_MEMORY,
-     *  'method' => Jwt::METHOD_FILE,
-     *  'passphrase' => '',
+     *      'key' => // the original given value,
+     *      'store' => Jwt::STORE_IN_MEMORY,
+     *      'method' => Jwt::METHOD_FILE,
+     *      'passphrase' => '',
      * ]
      * If you want to override the assumed configuration, you must provide it directly.
      * @since 3.0.0
@@ -108,13 +108,13 @@ class Jwt extends Component
     /**
      * @var string|Signer|null Signer ID or Signer instance to be used for signing/verifying.
      * See $signers for available values. In case it's not set, no algorithm will be used, which may be handy if you
-     * want to do some testing but it's NOT recommended for production environments.
+     * want to do some testing, but it's NOT recommended for production environments.
      * @since 3.0.0
      */
     public $signer;
 
     /**
-     * @var array<string, array<mixed>> Default signers configuration. When instantiated it will use selected array to
+     * @var array<string, string[]> Default signers configuration. When instantiated it will use selected array to
      * spread into `Yii::createObject($type, array $params = [])` method so the first array element is $type, and
      * the second is $params.
      * Since 3.0.0 configuration is done using arrays.
@@ -171,9 +171,9 @@ class Jwt extends Component
     public $decoder;
 
     /**
-     * @var array<array<mixed>>|Validation\Constraint[]|Closure|null List of constraints that will be used to validate
-     * against or an anonymous function that can be resolved as such list. The signature of the function should be
-     * `function(\bizley\jwt\Jwt $jwt)` where $jwt will be an instance of this component.
+     * @var array<array<mixed>|(callable(): mixed)|string>|(callable(): mixed)|null List of constraints that
+     * will be used to validate against or an anonymous function that can be resolved as such list. The signature of
+     * the function should be `function(\bizley\jwt\Jwt $jwt)` where $jwt will be an instance of this component.
      * For the constraints you can use instances of Lcobucci\JWT\Validation\Constraint or configuration arrays to be
      * resolved as such.
      * @since 3.0.0
@@ -218,7 +218,7 @@ class Jwt extends Component
     }
 
     /**
-     * @param array<mixed> $config
+     * @param array<array<mixed>|(callable(): mixed)|string> $config
      * @return object
      * @throws InvalidConfigException
      */
@@ -325,6 +325,9 @@ class Jwt extends Component
         }
 
         if (is_string($key)) {
+            if ($key === '') {
+                throw new InvalidConfigException('Empty string used as a key configuration!');
+            }
             if (strpos($key, '@') === 0) {
                 $keyConfig = [
                     self::KEY => Yii::getAlias($key),
@@ -434,8 +437,9 @@ class Jwt extends Component
             return $constraints;
         }
 
-        if ($this->validationConstraints instanceof Closure) {
-            return ($this->validationConstraints)($this);
+        if (is_callable($this->validationConstraints)) {
+            /** @phpstan-ignore-next-line */
+            return call_user_func($this->validationConstraints, $this);
         }
 
         return [];

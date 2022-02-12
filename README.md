@@ -74,7 +74,7 @@ Configuration array can be as the following:
 - key (Jwt::KEY) - _string_, default `''`,
 - passphrase (Jwt::PASSPHRASE) - _string_, default `''`,
 - store (Jwt::STORE) - _string_, default `Jwt::STORE_IN_MEMORY`, 
-  available: `Jwt::STORE_IN_MEMORY`, `Jwt::STORE_LOCAL_FILE_REFERENCE` 
+  available: `Jwt::STORE_IN_MEMORY`, `Jwt::STORE_LOCAL_FILE_REFERENCE` (deprecated since 3.2.0, will be removed in 4.0.0) 
   (see https://lcobucci-jwt.readthedocs.io/en/latest/configuration/)
 - method (Jwt::METHOD) - _string_, default `Jwt::METHOD_PLAIN`,
   available: `Jwt::METHOD_PLAIN`, `Jwt::METHOD_BASE64`, `Jwt::METHOD_FILE` 
@@ -185,6 +185,9 @@ thrown. There are several ways to provide constraints:
   ]
   ```
 
+**Note: By default, this package is not adding any constraints out-of-the-box, you must configure them yourself like 
+in the examples above.**
+
 ## Using component for REST authentication
 
 Configure the `authenticator` behavior in the controller.
@@ -207,7 +210,7 @@ class ExampleController extends Controller
 
 There are special options available:
 - jwt - _string_ ID of component (default with `'jwt'`), component configuration _array_, or an instance of `bizley\jwt\Jwt`,
-- auth - `\Closure` or `null` (default) - anonymous function with signature `function (\Lcobucci\JWT\Token $token)` that 
+- auth - callable or `null` (default) - anonymous function with signature `function (\Lcobucci\JWT\Token $token)` that 
   should return identity of user authenticated with the JWT payload information. If $auth is not provided method 
   `yii\web\User::loginByAccessToken()` will be called instead.
 

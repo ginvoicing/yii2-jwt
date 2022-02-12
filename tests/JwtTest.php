@@ -136,6 +136,7 @@ class JwtTest extends TestCase
     public function providerForInvalidKey(): array
     {
         return [
+            'empty' => ['', 'Empty string used as a key configuration!'],
             'object' => [new stdClass(), 'Invalid key configuration!'],
             'int value' => [[Jwt::KEY => 1], 'Invalid key value!'],
             'array value' => [[Jwt::KEY => []], 'Invalid key value!'],
@@ -311,7 +312,7 @@ cOJPB1eW2ny/UXZfeLwheuQfkr5grlke4Z0JiNd86CJ9NOnNIbMDl2PSj7cjMDQ=
      */
     public function testPrepareSignatureConverter(string $signerId): void
     {
-        new Jwt(['signer' => $signerId]);
+        new Jwt(['signer' => $signerId, 'signingKey' => ' ', 'verifyingKey' => ' ']);
         $this->assertInstanceOf(
             Signer\Ecdsa\MultibyteStringConverter::class,
             \Yii::$container->get(Signer\Ecdsa\SignatureConverter::class)
