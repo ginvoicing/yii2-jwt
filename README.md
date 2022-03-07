@@ -17,11 +17,13 @@ For 2.x (and `lcobucci/jwt` v3) install `^2.0`.**
 
 Add the package to your `composer.json`:
 
-    {
-        "require": {
-            "bizley/jwt": "^3.0"
-        }
+```json
+{
+    "require": {
+        "bizley/jwt": "^3.0"
     }
+}
+```
 
 and run `composer update` or alternatively run `composer require bizley/jwt:^3.0`
 
@@ -29,16 +31,20 @@ and run `composer update` or alternatively run `composer require bizley/jwt:^3.0
 
 Add `jwt` component to your configuration file:
 
-    [
-        'components' => [
-            'jwt' => [
-                'class' => \bizley\jwt\Jwt::class,
-                'signer' => ... // Signer ID
-                'signingKey' => ... // Secret key string or path to the signing key file
-            ],
+```php
+[
+    'components' => [
+        'jwt' => [
+            'class' => \bizley\jwt\Jwt::class,
+            'signer' => ... // Signer ID
+            'signingKey' => ... // Secret key string or path to the signing key file
         ],
     ],
+],
+```
 
+If you are struggling with the concept of API JWT, here is an [EXAMPLE](INSTRUCTION.md) of how to quickly put all 
+pieces together.
 
 ### Available signers
 
@@ -114,7 +120,7 @@ $token = Yii::$app->jwt->getBuilder()
     ->permittedFor('http://example.org')
     // Configures the id (jti claim)
     ->identifiedBy('4f1g23a12aa')
-    // Configures the time that the token was issue (iat claim)
+    // Configures the time that the token was issued (iat claim)
     ->issuedAt($now)
     // Configures the time that the token can be used (nbf claim)
     ->canOnlyBeUsedAfter($now->modify('+1 minute'))
@@ -161,7 +167,7 @@ For assertion use:
 Yii::$app->jwt->assert($token);
 ```
 
-You **must** provide at least one constraint, otherwise `Lcobucci\JWT\Validation\NoConstraintsGiven` exception will be 
+You **MUST** provide at least one constraint, otherwise `Lcobucci\JWT\Validation\NoConstraintsGiven` exception will be 
 thrown. There are several ways to provide constraints:
 
 - directly:
