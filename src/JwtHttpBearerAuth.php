@@ -60,6 +60,14 @@ class JwtHttpBearerAuth extends HttpBearerAuth
      * If $auth is not provided method User::loginByAccessToken() will be called instead.
      */
     public $auth;
+    
+    /**
+     * @var boolean Whether the the filter should throw an exception if f.e the token has an invalid format. If there are
+     * multiple auth filters (CompositeAuth) it can make sense to "silent fail" and pass the validation process to the next
+     * filter in the composite auth list.
+     * @since ???
+     */
+    public $throwException = true;
 
     /**
      * @throws InvalidConfigException
@@ -116,6 +124,9 @@ class JwtHttpBearerAuth extends HttpBearerAuth
         try {
             $token = $this->processToken($matches[1]);
         } catch (Throwable $exception) {
+            if (!$this->throwException) {
+                return null;
+            }
             Yii::warning($exception->getMessage(), 'JwtHttpBearerAuth');
             throw $exception;
         }
