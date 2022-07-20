@@ -62,10 +62,10 @@ class JwtHttpBearerAuth extends HttpBearerAuth
     public $auth;
     
     /**
-     * @var boolean Whether the the filter should throw an exception if f.e the token has an invalid format. If there are
+     * @var boolean Whether the filter should throw an exception if f.e the token has an invalid format or not. If there are
      * multiple auth filters (CompositeAuth) it can make sense to "silent fail" and pass the validation process to the next
-     * filter in the composite auth list.
-     * @since ???
+     * filter in the composite auth list. Default is true.
+     * @since 3.3.0
      */
     public $throwException = true;
 
