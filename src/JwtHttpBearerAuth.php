@@ -44,7 +44,7 @@ class JwtHttpBearerAuth extends HttpBearerAuth
 {
     /**
      * @var string|array<string, mixed>|Jwt application component ID of the JWT handler, configuration array, or
-     * JWT handler object itself. By default, it's assumes that component of ID "jwt" has been configured.
+     * JWT handler object itself. By default, it assumes that component of ID "jwt" has been configured.
      */
     public $jwt = 'jwt';
 
@@ -62,7 +62,7 @@ class JwtHttpBearerAuth extends HttpBearerAuth
     public $auth;
     
     /**
-     * @var boolean Whether the filter should throw an exception if f.e the token has an invalid format or not. If there are
+     * @var boolean Whether the filter should throw an exception i.e. if the token has an invalid format. If there are
      * multiple auth filters (CompositeAuth) it can make sense to "silent fail" and pass the validation process to the next
      * filter in the composite auth list. Default is true.
      * @since 3.3.0
@@ -124,10 +124,10 @@ class JwtHttpBearerAuth extends HttpBearerAuth
         try {
             $token = $this->processToken($matches[1]);
         } catch (Throwable $exception) {
+            Yii::warning($exception->getMessage(), 'JwtHttpBearerAuth');
             if (!$this->throwException) {
                 return null;
             }
-            Yii::warning($exception->getMessage(), 'JwtHttpBearerAuth');
             throw $exception;
         }
 
