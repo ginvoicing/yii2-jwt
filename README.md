@@ -9,7 +9,8 @@ This extension provides the [JWT](https://github.com/lcobucci/jwt) integration f
 
 > This is a fork of [sizeg/yii2-jwt](https://github.com/sizeg/yii2-jwt) package
 
-**Version 3.x of this package uses `lcobucci/jwt` [v4](https://github.com/lcobucci/jwt/releases/tag/4.0.0) and introduces critical BC changes, [see v4 lcobucci/jwt Upgrade Guide](https://lcobucci-jwt.readthedocs.io/en/latest/upgrading/).  
+**Version 3.x of this package uses `lcobucci/jwt` [v4](https://github.com/lcobucci/jwt/releases/tag/4.0.0) 
+and introduces critical BC changes, [see v4 lcobucci/jwt Upgrade Guide](https://lcobucci-jwt.readthedocs.io/en/latest/upgrading/).  
 For 2.x (and `lcobucci/jwt` v3) install `^2.0`.** 
 
 ## Installation
@@ -218,6 +219,9 @@ There are special options available:
 - auth - callable or `null` (default) - anonymous function with signature `function (\Lcobucci\JWT\Token $token)` that 
   should return identity of user authenticated with the JWT payload information. If $auth is not provided method 
   `yii\web\User::loginByAccessToken()` will be called instead.
+- throwException - _bool_ (default `true`) - whether the filter should throw an exception i.e. if the token has 
+  an invalid format. If there are multiple auth filters (CompositeAuth) it can make sense to "silent fail" and pass 
+  the validation process to the next filter on the composite auth list.
 
 For other configuration options refer to the [Yii 2 Guide](https://www.yiiframework.com/doc/guide/2.0/en/rest-authentication).
 

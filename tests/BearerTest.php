@@ -278,4 +278,18 @@ class BearerTest extends TestCase
         $controller->run('test');
         self::assertSame(14, $controller->flag);
     }
+
+    public function testSilentException(): void
+    {
+        $this->expectException(UnauthorizedHttpException::class);
+        $this->expectExceptionMessage('Your request was made with invalid or expired JSON Web Token.');
+        // instead of 'The JWT string must have two dots'
+
+        Yii::$app->request->headers->set('Authorization', 'Bearer InvalidToken');
+
+        /* @var $controller Controller */
+        $controller = Yii::$app->createController('test-auth')[0];
+        $controller->filterConfig['throwException'] = false;
+        $controller->run('filtered');
+    }
 }

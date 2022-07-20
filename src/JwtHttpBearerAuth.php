@@ -24,7 +24,7 @@ use function get_class;
 /**
  * JwtHttpBearerAuth is an action filter that supports the authentication method based on HTTP Bearer JSON Web Token.
  *
- * You may use JwtHttpBearerAuth by attaching it as a behavior to a controller or module, like the following:
+ * You can use JwtHttpBearerAuth by attaching it as a behavior to a controller or a module, like in the following:
  *
  * ```php
  * public function behaviors()
@@ -43,31 +43,31 @@ use function get_class;
 class JwtHttpBearerAuth extends HttpBearerAuth
 {
     /**
-     * @var string|array<string, mixed>|Jwt application component ID of the JWT handler, configuration array, or
-     * JWT handler object itself. By default, it assumes that component of ID "jwt" has been configured.
+     * @var string|array<string, mixed>|Jwt application component ID of the JWT handler, configuration array,
+     * or JWT handler object itself. By default, it assumes that component of ID "jwt" has been configured.
      */
     public $jwt = 'jwt';
 
     /**
-     * @var (callable(): mixed)|null anonymous function that should return identity of user authenticated with the JWT
-     * payload information. It should have the following signature:
+     * @var (callable(): mixed)|null anonymous function that should return identity of the user authenticated with
+     * the JWT payload information. It should have the following signature:
      *
      * ```php
      * function (Token $token)
      * ```
      *
-     * where $token is JSON Web Token provided in the HTTP header.
-     * If $auth is not provided method User::loginByAccessToken() will be called instead.
+     * where $token is the JSON Web Token provided in the HTTP header.
+     * If $auth is not provided, method User::loginByAccessToken() will be called instead.
      */
     public $auth;
     
     /**
-     * @var boolean Whether the filter should throw an exception i.e. if the token has an invalid format. If there are
-     * multiple auth filters (CompositeAuth) it can make sense to "silent fail" and pass the validation process to the next
-     * filter in the composite auth list. Default is true.
+     * @var bool Whether the filter should throw an exception i.e. if the token has an invalid format. If there are
+     * multiple auth filters (CompositeAuth) it can make sense to "silent fail" and pass the validation process to
+     * the next filter on the composite auth list. Default is true.
      * @since 3.3.0
      */
-    public $throwException = true;
+    public bool $throwException = true;
 
     /**
      * @throws InvalidConfigException
