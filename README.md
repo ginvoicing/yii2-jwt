@@ -9,7 +9,7 @@ This extension provides the [JWT](https://github.com/lcobucci/jwt) integration f
 
 > This is a fork of [sizeg/yii2-jwt](https://github.com/sizeg/yii2-jwt) package
 
-**Version 3.x of this package uses `lcobucci/jwt` [v4 and introduces critical BC changes](https://github.com/lcobucci/jwt/releases/tag/4.0.0) with 2.x.  
+**Version 3.x of this package uses `lcobucci/jwt` [v4(https://github.com/lcobucci/jwt/releases/tag/4.0.0) and introduces critical BC changes], [see v4 lcobucci/jwt Upgrade Guide](https://lcobucci-jwt.readthedocs.io/en/latest/upgrading/).  
 For 2.x (and `lcobucci/jwt` v3) install `^2.0`.** 
 
 ## Installation
