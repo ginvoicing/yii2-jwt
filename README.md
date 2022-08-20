@@ -36,7 +36,7 @@ Add `jwt` component to your configuration file:
     'components' => [
         'jwt' => [
             'class' => \bizley\jwt\Jwt::class,
-            'signer' => ... // Signer ID
+            'signer' => ... // Signer ID, or signer object, or signer configuration
             'signingKey' => ... // Secret key string or path to the signing key file
         ],
     ],
@@ -55,11 +55,30 @@ Asymmetric:
 - RSA (RS256, RS384, RS512)
 - ECDSA (ES256, ES384, ES512)
 - EdDSA (since 3.1.0)
+- BLAKE2B (since 3.4.0)
 
 Signer IDs are available as constants (like Jwt::HS256).
 
 You can also provide your own signer, either as an instance of Lcobucci\JWT\Signer or by adding its config to `signers` 
 and `algorithmTypes` and using its ID for `signer`.
+
+> As stated in lcobucci/jwt documentation: Although BLAKE2B is fantastic due to its performance, it's not JWT standard 
+> and won't necessarily be offered by other libraries.
+
+### Note on signers and minimum bits requirement
+
+Since `lcobucci/jwt 4.2.0` signers require the minimum key length to make sure those are properly secured, otherwise 
+the `InvalidKeyProvided` is thrown. If for any reason (**and on your own risk**) you would still like to use the less 
+secure key (for example HS256 with fewer than 256 bits length) you can wire it through this library by using the 
+`Unsafe` version of that signer (for example `Lcobucci\JWT\Signer\Hmac\Sha256` has the unsafe version 
+`Lcobucci\JWT\Signer\Hmac\UnsafeSha256`). Unsafe versions are using the same algorithm ID, so you don't have to add them
+on the `Jwt::$algorithmTypes` list, but you need to configure them manually for your signer configuration like:
+
+```php
+[
+    'signer' => [\Lcobucci\JWT\Signer\Hmac\UnsafeSha256::class],
+]
+```
 
 ### Keys
 

@@ -31,6 +31,7 @@ class JwtTest extends TestCase
                 Jwt::ES384 => [Signer\Ecdsa\Sha384::class],
                 Jwt::ES512 => [Signer\Ecdsa\Sha512::class],
                 Jwt::EDDSA => [Signer\Eddsa::class],
+                Jwt::BLAKE2B => [Signer\Blake2b::class],
             ],
             (new Jwt())->signers,
         );
@@ -53,6 +54,7 @@ class JwtTest extends TestCase
                     Jwt::ES384,
                     Jwt::ES512,
                     Jwt::EDDSA,
+                    Jwt::BLAKE2B,
                 ],
             ],
             (new Jwt())->algorithmTypes,
