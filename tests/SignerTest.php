@@ -6,6 +6,7 @@ namespace bizley\tests;
 
 use bizley\jwt\Jwt;
 use Lcobucci\JWT\Signer\Hmac\Sha256;
+use Lcobucci\JWT\Signer\InvalidKeyProvided;
 use Lcobucci\JWT\Signer\Key\InMemory;
 use Lcobucci\JWT\Validation\Constraint\SignedWith;
 use PHPUnit\Framework\TestCase;
@@ -42,21 +43,21 @@ class SignerTest extends TestCase
             'Direct signer provided' => [
                 [
                     'signer' => new Sha256(),
-                    'signingKey' => 'secret1',
+                    'signingKey' => 'secret1secret1secret1secret1secret1secret1',
                 ],
                 Jwt::HS256
             ],
             'Direct key provided' => [
                 [
                     'signer' => Jwt::HS256,
-                    'signingKey' => InMemory::plainText('secret1')
+                    'signingKey' => InMemory::plainText('secret1secret1secret1secret1secret1secret1')
                 ],
                 Jwt::HS256
             ],
             'HS256' => [
                 [
                     'signer' => Jwt::HS256,
-                    'signingKey' => 'secret1',
+                    'signingKey' => 'secret1secret1secret1secret1secret1secret1',
                 ],
                 Jwt::HS256
             ],
@@ -64,7 +65,7 @@ class SignerTest extends TestCase
                 [
                     'signer' => Jwt::HS256,
                     'signingKey' => [
-                        Jwt::KEY => 'c2VjcmV0',
+                        Jwt::KEY => 'c2VjcmV0MXNlY3JldDFzZWNyZXQxc2VjcmV0MXNlY3JldDFzZWNyZXQx',
                         Jwt::METHOD => JWT::METHOD_BASE64
                     ],
                 ],
@@ -73,14 +74,14 @@ class SignerTest extends TestCase
             'HS384' => [
                 [
                     'signer' => Jwt::HS384,
-                    'signingKey' => 'secret2',
+                    'signingKey' => 'secret1secret1secret1secret1secret1secret1secret1',
                 ],
                 Jwt::HS384
             ],
             'HS512' => [
                 [
                     'signer' => Jwt::HS512,
-                    'signingKey' => 'secret3',
+                    'signingKey' => 'secret1secret1secret1secret1secret1secret1secret1secret1secret1secret1',
                 ],
                 Jwt::HS512
             ],
@@ -88,7 +89,7 @@ class SignerTest extends TestCase
                 [
                     'signer' => Jwt::HS256,
                     'signingKey' => [
-                        Jwt::KEY => 'secret1',
+                        Jwt::KEY => 'secret1secret1secret1secret1secret1secret1secret1',
                         Jwt::PASSPHRASE => 'passphrase'
                     ],
                 ],
@@ -98,7 +99,7 @@ class SignerTest extends TestCase
                 [
                     'signer' => Jwt::HS384,
                     'signingKey' => [
-                        Jwt::KEY => 'secret2',
+                        Jwt::KEY => 'secret1secret1secret1secret1secret1secret1secret1',
                         Jwt::PASSPHRASE => 'passphrase'
                     ],
                 ],
@@ -108,7 +109,7 @@ class SignerTest extends TestCase
                 [
                     'signer' => Jwt::HS512,
                     'signingKey' => [
-                        Jwt::KEY => 'secret3',
+                        Jwt::KEY => 'secret1secret1secret1secret1secret1secret1secret1secret1secret1secret1',
                         Jwt::PASSPHRASE => 'passphrase'
                     ],
                 ],
@@ -194,7 +195,6 @@ class SignerTest extends TestCase
                 ],
                 Jwt::ES512
             ],
-
         ];
     }
 
@@ -236,5 +236,20 @@ class SignerTest extends TestCase
                 ],
             ]
         );
+    }
+
+    public function testInvalidKeyWithNotEnoughBits(): void
+    {
+        $this->expectException(InvalidKeyProvided::class);
+        $this->expectExceptionMessage('Key provided is shorter than 256 bits, only 56 bits provided');
+        $jwt = $this->getJwt(
+            [
+                'signer' => Jwt::HS256,
+                'signingKey' => 'secret1',
+            ]
+        );
+        $signer = $jwt->getConfiguration()->signer();
+        $token = $jwt->getBuilder()->getToken($signer, $jwt->getConfiguration()->signingKey());
+        $jwt->parse($token->toString());
     }
 }

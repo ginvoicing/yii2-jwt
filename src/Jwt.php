@@ -47,6 +47,7 @@ class Jwt extends Component
     public const ES384 = 'ES384';
     public const ES512 = 'ES512';
     public const EDDSA = 'EdDSA';
+    public const BLAKE2B = 'BLAKE2B';
 
     public const STORE_IN_MEMORY = 'in_memory';
     public const STORE_LOCAL_FILE_REFERENCE = 'local_file_reference'; // deprecated since 3.2.0, will be removed in 4.0.0
@@ -131,6 +132,7 @@ class Jwt extends Component
         self::ES384 => [Signer\Ecdsa\Sha384::class],
         self::ES512 => [Signer\Ecdsa\Sha512::class],
         self::EDDSA => [Signer\Eddsa::class],
+        self::BLAKE2B => [Signer\Blake2b::class],
     ];
 
     /**
@@ -151,6 +153,7 @@ class Jwt extends Component
             self::ES384,
             self::ES512,
             self::EDDSA,
+            self::BLAKE2B,
         ],
     ];
 
@@ -372,6 +375,9 @@ class Jwt extends Component
         }
 
         if ($store === self::STORE_IN_MEMORY) {
+            if ($value === '') {
+                return Signer\Key\InMemory::empty();
+            }
             if ($method === self::METHOD_BASE64) {
                 return Signer\Key\InMemory::base64Encoded($value, $passphrase);
             }
@@ -386,7 +392,7 @@ class Jwt extends Component
             throw new InvalidConfigException('Invalid key store and method combination!');
         }
 
-        return Signer\Key\LocalFileReference::file($value, $passphrase);
+        return Signer\Key\InMemory::file($value, $passphrase);
     }
 
     /**

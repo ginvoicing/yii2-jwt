@@ -48,7 +48,7 @@ class BearerTest extends TestCase
                 'jwt' => [
                     'class' => Jwt::class,
                     'signer' => Jwt::HS256,
-                    'signingKey' => 'secret',
+                    'signingKey' => 'c2VjcmV0MXNlY3JldDFzZWNyZXQxc2VjcmV0M',
                 ],
             ],
             'controllerMap' => [
