@@ -70,7 +70,7 @@ You can also add here any other constraint that you find necessary. The availabl
 https://github.com/lcobucci/jwt/tree/4.1.x/src/Validation/Constraint, and you can always write your own constraint as 
 long as it implements `Lcobucci\JWT\Validation\Constraint`.
 
-For others ways to add constraints please refer to the README file.
+For other ways to add constraints please refer to the README file.
 
 ## Step 2: Issuing the token
 
@@ -107,7 +107,7 @@ return ['token' => $tokenString];
 
 ## Step 3: Passing the token
 
-API client should use the given token and send it in the API requests to authorize the user.  
+API client should use the given token and send it with the API requests to authorize the user.  
 In order to do that client must send `Authorization` header with value `Bearer xxx`, where `xxx` is the token string 
 itself.
 
@@ -133,7 +133,7 @@ class ExampleController extends Controller
 
 The first thing `JwtHttpBearerAuth` does is to validate the given token, so it must be properly signed and not expired.  
 The second thing is to find the user, the token was issued for. To do that let's modify the `User` class, the one 
-configured in `user` component, the one implementing `yii\web\IdentityInterface`.  
+configured in `user` component (the one implementing `yii\web\IdentityInterface`).  
 This class must have `findIdentityByAccessToken` static method I will use.
 
 ```php
