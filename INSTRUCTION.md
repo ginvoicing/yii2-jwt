@@ -48,7 +48,7 @@ Add `jwt` component to your configuration file:
             'validationConstraints' => static fn (\bizley\jwt\Jwt $jwt) {
                 $config = $jwt->getConfiguration();
                 return [
-                    new \Lcobucci\JWT\Validation\Constraint\SignedWith($config->signer(), $config->signingKey()),
+                    new \Lcobucci\JWT\Validation\Constraint\SignedWith($config->signer(), $config->verificationKey()),
                     new \Lcobucci\JWT\Validation\Constraint\LooseValidAt(
                         new \Lcobucci\Clock\SystemClock(new \DateTimeZone(\Yii::$app->timeZone)),
                         new \DateInterval('PT10S')
@@ -61,8 +61,8 @@ Add `jwt` component to your configuration file:
 ```
 
 Validation constraints used here are:
- - `SignedWith` - this will make sure that received token is indeed signed with the chosen signer and the provided 
-   signing key,
+ - `SignedWith` - this will make sure that received token is indeed signed with the chosen signer and can be verified 
+   with the provided verification key,
  - `LooseValidAt` - this will make sure that token is not expired yet allowing 10 seconds leeway (in case of some delays
    between the server and the client), we are here also setting the same time zone that is used in the application.
 
