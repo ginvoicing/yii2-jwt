@@ -66,6 +66,9 @@ Validation constraints used here are:
  - `LooseValidAt` - this will make sure that token is not expired yet allowing 10 seconds leeway (in case of some delays
    between the server and the client), we are here also setting the same time zone that is used in the application.
 
+*NOTE*: The above implementation requires to install `lcobucci/clock` library first (run `composer req lcobucci/clock`).
+If you prefer other PSR-20 clock implementation you must change the above `\Lcobucci\Clock\SystemClock()` usage.
+
 You can also add here any other constraint that you find necessary. The available list is at 
 https://github.com/lcobucci/jwt/tree/4.1.x/src/Validation/Constraint, and you can always write your own constraint as 
 long as it implements `Lcobucci\JWT\Validation\Constraint`.

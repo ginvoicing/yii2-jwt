@@ -27,7 +27,9 @@ class ConstraintsConfigTest extends TestCase
         return Yii::createObject(
             [
                 'class' => Jwt::class,
-                'validationConstraints' => $validationConstraints
+                'signer' => Jwt::HS256,
+                'signingKey' => 'c2VjcmV0MXNlY3JldDFzZWNyZXQxc2VjcmV0M',
+                'validationConstraints' => $validationConstraints,
             ]
         );
     }

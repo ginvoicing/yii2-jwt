@@ -31,170 +31,150 @@ class SignerTest extends TestCase
         return $jwt;
     }
 
-    public function providerForSigners(): array
+    public static function providerForSigners(): iterable
     {
-        return [
-            'No signer' => [
-                [
-                    'signer' => null,
-                ],
-                'none'
+        yield 'Direct signer provided' => [
+            [
+                'signer' => new Sha256(),
+                'signingKey' => 'secret1secret1secret1secret1secret1secret1',
             ],
-            'Direct signer provided' => [
-                [
-                    'signer' => new Sha256(),
-                    'signingKey' => 'secret1secret1secret1secret1secret1secret1',
-                ],
-                Jwt::HS256
+            Jwt::HS256
+        ];
+        yield 'Direct key provided' => [
+            [
+                'signer' => Jwt::HS256,
+                'signingKey' => InMemory::plainText('secret1secret1secret1secret1secret1secret1')
             ],
-            'Direct key provided' => [
-                [
-                    'signer' => Jwt::HS256,
-                    'signingKey' => InMemory::plainText('secret1secret1secret1secret1secret1secret1')
-                ],
-                Jwt::HS256
+            Jwt::HS256
+        ];
+        yield 'HS256' => [
+            [
+                'signer' => Jwt::HS256,
+                'signingKey' => 'secret1secret1secret1secret1secret1secret1',
             ],
-            'HS256' => [
-                [
-                    'signer' => Jwt::HS256,
-                    'signingKey' => 'secret1secret1secret1secret1secret1secret1',
+            Jwt::HS256
+        ];
+        yield 'HS256 base64' => [
+            [
+                'signer' => Jwt::HS256,
+                'signingKey' => [
+                    Jwt::KEY => 'c2VjcmV0MXNlY3JldDFzZWNyZXQxc2VjcmV0MXNlY3JldDFzZWNyZXQx',
+                    Jwt::METHOD => JWT::METHOD_BASE64
                 ],
-                Jwt::HS256
             ],
-            'HS256 base64' => [
-                [
-                    'signer' => Jwt::HS256,
-                    'signingKey' => [
-                        Jwt::KEY => 'c2VjcmV0MXNlY3JldDFzZWNyZXQxc2VjcmV0MXNlY3JldDFzZWNyZXQx',
-                        Jwt::METHOD => JWT::METHOD_BASE64
-                    ],
+            Jwt::HS256
+        ];
+        yield 'HS384' => [
+            [
+                'signer' => Jwt::HS384,
+                'signingKey' => 'secret1secret1secret1secret1secret1secret1secret1',
+            ],
+            Jwt::HS384
+        ];
+        yield 'HS512' => [
+            [
+                'signer' => Jwt::HS512,
+                'signingKey' => 'secret1secret1secret1secret1secret1secret1secret1secret1secret1secret1',
+            ],
+            Jwt::HS512
+        ];
+        yield 'HS256 pass' => [
+            [
+                'signer' => Jwt::HS256,
+                'signingKey' => [
+                    Jwt::KEY => 'secret1secret1secret1secret1secret1secret1secret1',
+                    Jwt::PASSPHRASE => 'passphrase'
                 ],
-                Jwt::HS256
             ],
-            'HS384' => [
-                [
-                    'signer' => Jwt::HS384,
-                    'signingKey' => 'secret1secret1secret1secret1secret1secret1secret1',
+            Jwt::HS256
+        ];
+        yield 'HS384 pass' => [
+            [
+                'signer' => Jwt::HS384,
+                'signingKey' => [
+                    Jwt::KEY => 'secret1secret1secret1secret1secret1secret1secret1',
+                    Jwt::PASSPHRASE => 'passphrase'
                 ],
-                Jwt::HS384
             ],
-            'HS512' => [
-                [
-                    'signer' => Jwt::HS512,
-                    'signingKey' => 'secret1secret1secret1secret1secret1secret1secret1secret1secret1secret1',
+            Jwt::HS384
+        ];
+        yield 'HS512 pass' => [
+            [
+                'signer' => Jwt::HS512,
+                'signingKey' => [
+                    Jwt::KEY => 'secret1secret1secret1secret1secret1secret1secret1secret1secret1secret1',
+                    Jwt::PASSPHRASE => 'passphrase'
                 ],
-                Jwt::HS512
             ],
-            'HS256 pass' => [
-                [
-                    'signer' => Jwt::HS256,
-                    'signingKey' => [
-                        Jwt::KEY => 'secret1secret1secret1secret1secret1secret1secret1',
-                        Jwt::PASSPHRASE => 'passphrase'
-                    ],
+            Jwt::HS512
+        ];
+        yield 'RS256' => [
+            [
+                'signer' => Jwt::RS256,
+                'signingKey' => '@bizley/tests/data/rs256.key',
+                'verifyingKey' => '@bizley/tests/data/rs256.key.pub',
+            ],
+            Jwt::RS256
+        ];
+        yield 'RS256 with file handler' => [
+            [
+                'signer' => Jwt::RS256,
+                'signingKey' => 'file://' . __DIR__ . '/data/rs256.key',
+                'verifyingKey' => 'file://' . __DIR__ . '/data/rs256.key.pub',
+            ],
+            Jwt::RS256
+        ];
+        yield 'RS256 with in-memory file' => [
+            [
+                'signer' => Jwt::RS256,
+                'signingKey' => [
+                    Jwt::KEY => 'file://' . __DIR__ . '/data/rs256.key',
+                    Jwt::STORE => Jwt::STORE_IN_MEMORY,
+                    Jwt::METHOD => Jwt::METHOD_FILE,
                 ],
-                Jwt::HS256
+                'verifyingKey' => 'file://' . __DIR__ . '/data/rs256.key.pub',
             ],
-            'HS384 pass' => [
-                [
-                    'signer' => Jwt::HS384,
-                    'signingKey' => [
-                        Jwt::KEY => 'secret1secret1secret1secret1secret1secret1secret1',
-                        Jwt::PASSPHRASE => 'passphrase'
-                    ],
-                ],
-                Jwt::HS384
+            Jwt::RS256
+        ];
+        yield 'RS384' => [
+            [
+                'signer' => Jwt::RS384,
+                'signingKey' => '@bizley/tests/data/rs384.key',
+                'verifyingKey' => '@bizley/tests/data/rs384.key.pub',
             ],
-            'HS512 pass' => [
-                [
-                    'signer' => Jwt::HS512,
-                    'signingKey' => [
-                        Jwt::KEY => 'secret1secret1secret1secret1secret1secret1secret1secret1secret1secret1',
-                        Jwt::PASSPHRASE => 'passphrase'
-                    ],
-                ],
-                Jwt::HS512
+            Jwt::RS384
+        ];
+        yield 'RS512' => [
+            [
+                'signer' => Jwt::RS512,
+                'signingKey' => '@bizley/tests/data/rs512.key',
+                'verifyingKey' => '@bizley/tests/data/rs512.key.pub',
             ],
-            'RS256' => [
-                [
-                    'signer' => Jwt::RS256,
-                    'signingKey' => '@bizley/tests/data/rs256.key',
-                    'verifyingKey' => '@bizley/tests/data/rs256.key.pub',
-                ],
-                Jwt::RS256
+            Jwt::RS512
+        ];
+        yield 'ES256' => [
+            [
+                'signer' => Jwt::ES256,
+                'signingKey' => '@bizley/tests/data/es256.key',
+                'verifyingKey' => '@bizley/tests/data/es256.key.pub',
             ],
-            'RS256 with file handler' => [
-                [
-                    'signer' => Jwt::RS256,
-                    'signingKey' => 'file://' . __DIR__ . '/data/rs256.key',
-                    'verifyingKey' => 'file://' . __DIR__ . '/data/rs256.key.pub',
-                ],
-                Jwt::RS256
+            Jwt::ES256
+        ];
+        yield 'ES384' => [
+            [
+                'signer' => Jwt::ES384,
+                'signingKey' => '@bizley/tests/data/es384.key',
+                'verifyingKey' => '@bizley/tests/data/es384.key.pub',
             ],
-            'RS256 with in-memory file' => [
-                [
-                    'signer' => Jwt::RS256,
-                    'signingKey' => [
-                        Jwt::KEY => 'file://' . __DIR__ . '/data/rs256.key',
-                        Jwt::STORE => Jwt::STORE_IN_MEMORY,
-                        Jwt::METHOD => Jwt::METHOD_FILE,
-                    ],
-                    'verifyingKey' => 'file://' . __DIR__ . '/data/rs256.key.pub',
-                ],
-                Jwt::RS256
+            Jwt::ES384
+        ];
+        yield 'ES512' => [
+            [
+                'signer' => Jwt::ES512,
+                'signingKey' => '@bizley/tests/data/es512.key',
+                'verifyingKey' => '@bizley/tests/data/es512.key.pub',
             ],
-            'RS256 with local file' => [
-                [
-                    'signer' => Jwt::RS256,
-                    'signingKey' => [
-                        Jwt::KEY => 'file://' . __DIR__ . '/data/rs256.key',
-                        Jwt::STORE => Jwt::STORE_LOCAL_FILE_REFERENCE,
-                        Jwt::METHOD => Jwt::METHOD_FILE,
-                    ],
-                    'verifyingKey' => 'file://' . __DIR__ . '/data/rs256.key.pub',
-                ],
-                Jwt::RS256
-            ],
-            'RS384' => [
-                [
-                    'signer' => Jwt::RS384,
-                    'signingKey' => '@bizley/tests/data/rs384.key',
-                    'verifyingKey' => '@bizley/tests/data/rs384.key.pub',
-                ],
-                Jwt::RS384
-            ],
-            'RS512' => [
-                [
-                    'signer' => Jwt::RS512,
-                    'signingKey' => '@bizley/tests/data/rs512.key',
-                    'verifyingKey' => '@bizley/tests/data/rs512.key.pub',
-                ],
-                Jwt::RS512
-            ],
-            'ES256' => [
-                [
-                    'signer' => Jwt::ES256,
-                    'signingKey' => '@bizley/tests/data/es256.key',
-                    'verifyingKey' => '@bizley/tests/data/es256.key.pub',
-                ],
-                Jwt::ES256
-            ],
-            'ES384' => [
-                [
-                    'signer' => Jwt::ES384,
-                    'signingKey' => '@bizley/tests/data/es384.key',
-                    'verifyingKey' => '@bizley/tests/data/es384.key.pub',
-                ],
-                Jwt::ES384
-            ],
-            'ES512' => [
-                [
-                    'signer' => Jwt::ES512,
-                    'signingKey' => '@bizley/tests/data/es512.key',
-                    'verifyingKey' => '@bizley/tests/data/es512.key.pub',
-                ],
-                Jwt::ES512
-            ],
+            Jwt::ES512
         ];
     }
 
@@ -220,20 +200,18 @@ class SignerTest extends TestCase
     public function testInvalidSignerId(): void
     {
         $this->expectException(InvalidConfigException::class);
+        $this->expectExceptionMessage('Invalid signer ID!');
         $this->getJwt(['signer' => 'Invalid']);
     }
 
-    public function testInvalidKeyConfigCombination(): void
+    public function testEmptyKey(): void
     {
         $this->expectException(InvalidConfigException::class);
+        $this->expectExceptionMessage('Empty string used as a key configuration!');
         $this->getJwt(
             [
                 'signer' => Jwt::HS256,
-                'signingKey' => [
-                    Jwt::KEY => 'file://' . __DIR__ . '/data/rs256.key',
-                    Jwt::STORE => Jwt::STORE_LOCAL_FILE_REFERENCE,
-                    Jwt::METHOD => Jwt::METHOD_PLAIN,
-                ],
+                'signingKey' => '',
             ]
         );
     }

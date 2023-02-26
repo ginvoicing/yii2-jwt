@@ -9,9 +9,15 @@ This extension provides the [JWT](https://github.com/lcobucci/jwt) integration f
 
 > This is a fork of [sizeg/yii2-jwt](https://github.com/sizeg/yii2-jwt) package
 
-**Version 3.x of this package uses `lcobucci/jwt` [v4](https://github.com/lcobucci/jwt/releases/tag/4.0.0) 
-and introduces critical BC changes, [see v4 lcobucci/jwt Upgrade Guide](https://lcobucci-jwt.readthedocs.io/en/latest/upgrading/).  
-For 2.x (and `lcobucci/jwt` v3) install `^2.0`.** 
+# Available versions
+
+| bizley/yii2-jwt | lcobucci/jwt |   php   |
+|:---------------:|:------------:|:-------:|
+|     `^4.0`      |    `^5.0`    | `>=8.1` |
+|     `^3.0`      |    `^4.0`    | `>=7.4` |
+|     `^2.0`      |    `^3.0`    | `>=7.1` |
+
+See [lcobucci/jwt](https://github.com/lcobucci/jwt) repo for details about the version.
 
 ## Installation
 
@@ -20,12 +26,12 @@ Add the package to your `composer.json`:
 ```json
 {
     "require": {
-        "bizley/jwt": "^3.0"
+        "bizley/jwt": "^4.0"
     }
 }
 ```
 
-and run `composer update` or alternatively run `composer require bizley/jwt:^3.0`
+and run `composer update` or alternatively run `composer require bizley/jwt:^4.0`
 
 ## Basic usage
 
@@ -68,17 +74,7 @@ and `algorithmTypes` and using its ID for `signer`.
 ### Note on signers and minimum bits requirement
 
 Since `lcobucci/jwt 4.2.0` signers require the minimum key length to make sure those are properly secured, otherwise 
-the `InvalidKeyProvided` is thrown. If for any reason (**and on your own risk**) you would still like to use the less 
-secure key (for example HS256 with fewer than 256 bits length) you can wire it through this library by using the 
-`Unsafe` version of that signer (for example `Lcobucci\JWT\Signer\Hmac\Sha256` has the unsafe version 
-`Lcobucci\JWT\Signer\Hmac\UnsafeSha256`). Unsafe versions are using the same algorithm ID, so you don't have to add them
-on the `Jwt::$algorithmTypes` list, but you need to configure them manually for your signer configuration like:
-
-```php
-[
-    'signer' => [\Lcobucci\JWT\Signer\Hmac\UnsafeSha256::class],
-]
-```
+the `InvalidKeyProvided` is thrown.
 
 ### Keys
 
@@ -91,16 +87,12 @@ Configuration array can be as the following:
 [
     'key' => /* key content */,
     'passphrase' => /* key passphrase */,
-    'store' => /* storage type */,
     'method' => /* method type */,
 ]
 ```
 
 - key (Jwt::KEY) - _string_, default `''`,
 - passphrase (Jwt::PASSPHRASE) - _string_, default `''`,
-- store (Jwt::STORE) - _string_, default `Jwt::STORE_IN_MEMORY`, 
-  available: `Jwt::STORE_IN_MEMORY`, `Jwt::STORE_LOCAL_FILE_REFERENCE` (deprecated since 3.2.0, will be removed in 4.0.0) 
-  (see https://lcobucci-jwt.readthedocs.io/en/latest/configuration/)
 - method (Jwt::METHOD) - _string_, default `Jwt::METHOD_PLAIN`,
   available: `Jwt::METHOD_PLAIN`, `Jwt::METHOD_BASE64`, `Jwt::METHOD_FILE` 
   (see https://lcobucci-jwt.readthedocs.io/en/latest/configuration/)
@@ -111,18 +103,16 @@ Simple string keys are shortcuts to the following array configs:
   [
       'key' => /* given key itself */,
       'passphrase' => '',
-      'store' => Jwt::STORE_IN_MEMORY,
       'method' => Jwt::METHOD_FILE,
   ]
   ```
-  Detecting `@` at the beginning assumes Yii alias has been provided so it will be resolved with `Yii::getAlias()`.
+  Detecting `@` at the beginning assumes Yii alias has been provided, so it will be resolved with `Yii::getAlias()`.
 
 - key doesn't start with `@` nor `file://`:
   ```php
   [
       'key' => /* given key itself */,
       'passphrase' => '',
-      'store' => Jwt::STORE_IN_MEMORY,
       'method' => Jwt::METHOD_PLAIN,
   ]
   ```

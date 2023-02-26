@@ -10,6 +10,7 @@ use Lcobucci\JWT\Configuration;
 use Lcobucci\JWT\Decoder;
 use Lcobucci\JWT\Encoder;
 use Lcobucci\JWT\Encoding\CannotDecodeContent;
+use Lcobucci\JWT\Encoding\JoseEncoder;
 use Lcobucci\JWT\Parser;
 use Lcobucci\JWT\Signer;
 use Lcobucci\JWT\Token;
@@ -26,10 +27,10 @@ use function is_array;
 use function is_callable;
 use function is_string;
 use function reset;
-use function strpos;
+use function str_starts_with;
 
 /**
- * JSON Web Token implementation based on lcobucci/jwt library v4.
+ * JSON Web Token implementation based on lcobucci/jwt library v5.
  * @see https://github.com/lcobucci/jwt
  *
  * @author Paweł Bizley Brzozowski <pawel@positive.codes> since 2.0 (fork)
@@ -50,7 +51,6 @@ class Jwt extends Component
     public const BLAKE2B = 'BLAKE2B';
 
     public const STORE_IN_MEMORY = 'in_memory';
-    public const STORE_LOCAL_FILE_REFERENCE = 'local_file_reference'; // deprecated since 3.2.0, will be removed in 4.0.0
 
     public const METHOD_PLAIN = 'plain';
     public const METHOD_BASE64 = 'base64';
@@ -69,18 +69,13 @@ class Jwt extends Component
      * This can be a simple string, an instance of Key, or a configuration array.
      * The configuration takes the following array keys:
      * - 'key'        => Key's value or path to the key file.
-     * - 'store'      => Either `Jwt::STORE_IN_MEMORY` or `Jwt::STORE_LOCAL_FILE_REFERENCE` (deprecated) -
-     *                   whether to keep the key in the memory or as a reference to a local file.
      * - 'method'     => `Jwt::METHOD_PLAIN`, `Jwt::METHOD_BASE64`, or `Jwt::METHOD_FILE` - whether the key is a plain
      *                   text, base64 encoded text, or a file.
-     *                   In case the 'store' is set to `Jwt::STORE_LOCAL_FILE_REFERENCE` (deprecated), only
-     *                   `Jwt::METHOD_FILE` method is available.
      * - 'passphrase' => Key's passphrase.
      * In case a simple string is provided (and it does not start with 'file://' or '@') the following configuration
      * is assumed:
      * [
      *      'key' => // the original given value,
-     *      'store' => Jwt::STORE_IN_MEMORY,
      *      'method' => Jwt::METHOD_PLAIN,
      *      'passphrase' => '',
      * ]
@@ -88,7 +83,6 @@ class Jwt extends Component
      * the following configuration is assumed:
      * [
      *      'key' => // the original given value,
-     *      'store' => Jwt::STORE_IN_MEMORY,
      *      'method' => Jwt::METHOD_FILE,
      *      'passphrase' => '',
      * ]
@@ -107,12 +101,11 @@ class Jwt extends Component
     public $verifyingKey = '';
 
     /**
-     * @var string|Signer|null Signer ID or Signer instance to be used for signing/verifying.
-     * See $signers for available values. In case it's not set, no algorithm will be used, which may be handy if you
-     * want to do some testing, but it's NOT recommended for production environments.
+     * @var string|Signer Signer ID or Signer instance to be used for signing/verifying.
+     * See $signers for available values. Since 4.0.0 it cannot be empty anymore.
      * @since 3.0.0
      */
-    public $signer;
+    public $signer = '';
 
     /**
      * @var array<string, string[]> Default signers configuration. When instantiated it will use selected array to
@@ -192,31 +185,27 @@ class Jwt extends Component
     {
         parent::init();
 
-        if ($this->signer === null) {
-            $this->configuration = Configuration::forUnsecuredSigner($this->prepareEncoder(), $this->prepareDecoder());
+        $signerId = $this->signer;
+        if ($this->signer instanceof Signer) {
+            $signerId = $this->signer->algorithmId();
+        }
+        if (in_array($signerId, $this->algorithmTypes[self::SYMMETRIC], true)) {
+            $this->configuration = Configuration::forSymmetricSigner(
+                $this->prepareSigner($this->signer),
+                $this->prepareKey($this->signingKey),
+                $this->prepareEncoder(),
+                $this->prepareDecoder()
+            );
+        } elseif (in_array($signerId, $this->algorithmTypes[self::ASYMMETRIC], true)) {
+            $this->configuration = Configuration::forAsymmetricSigner(
+                $this->prepareSigner($this->signer),
+                $this->prepareKey($this->signingKey),
+                $this->prepareKey($this->verifyingKey),
+                $this->prepareEncoder(),
+                $this->prepareDecoder()
+            );
         } else {
-            $signerId = $this->signer;
-            if ($this->signer instanceof Signer) {
-                $signerId = $this->signer->algorithmId();
-            }
-            if (in_array($signerId, $this->algorithmTypes[self::SYMMETRIC], true)) {
-                $this->configuration = Configuration::forSymmetricSigner(
-                    $this->prepareSigner($this->signer),
-                    $this->prepareKey($this->signingKey),
-                    $this->prepareEncoder(),
-                    $this->prepareDecoder()
-                );
-            } elseif (in_array($signerId, $this->algorithmTypes[self::ASYMMETRIC], true)) {
-                $this->configuration = Configuration::forAsymmetricSigner(
-                    $this->prepareSigner($this->signer),
-                    $this->prepareKey($this->signingKey),
-                    $this->prepareKey($this->verifyingKey),
-                    $this->prepareEncoder(),
-                    $this->prepareDecoder()
-                );
-            } else {
-                throw new InvalidConfigException('Invalid signer ID!');
-            }
+            throw new InvalidConfigException('Invalid signer ID!');
         }
     }
 
@@ -251,6 +240,7 @@ class Jwt extends Component
 
     /**
      * Since 3.0.0 this method is using different signature.
+     * Please note that since 4.0.0 Builder object is immutable.
      * @see https://lcobucci-jwt.readthedocs.io/en/latest/issuing-tokens/ for details of using the builder.
      * @throws InvalidConfigException
      */
@@ -270,6 +260,7 @@ class Jwt extends Component
     }
 
     /**
+     * @param non-empty-string $jwt
      * @throws CannotDecodeContent When something goes wrong while decoding.
      * @throws Token\InvalidTokenStructure When token string structure is invalid.
      * @throws Token\UnsupportedHeaderFound When parsed token has an unsupported header.
@@ -284,7 +275,7 @@ class Jwt extends Component
     /**
      * This method goes through every single constraint in the set, groups all the violations, and throws an exception
      * with the grouped violations.
-     * @param string|Token $jwt JWT string or instance of Token
+     * @param non-empty-string|Token $jwt JWT string or instance of Token
      * @throws Validation\RequiredConstraintsViolated When constraint is violated
      * @throws Validation\NoConstraintsGiven When no constraints are provided
      * @throws InvalidConfigException
@@ -300,7 +291,7 @@ class Jwt extends Component
 
     /**
      * This method return false on first constraint violation
-     * @param string|Token $jwt JWT string or instance of Token
+     * @param non-empty-string|Token $jwt JWT string or instance of Token
      * @throws InvalidConfigException
      * @since 3.0.0
      */
@@ -331,22 +322,19 @@ class Jwt extends Component
             if ($key === '') {
                 throw new InvalidConfigException('Empty string used as a key configuration!');
             }
-            if (strpos($key, '@') === 0) {
+            if (str_starts_with($key, '@')) {
                 $keyConfig = [
                     self::KEY => Yii::getAlias($key),
-                    self::STORE => self::STORE_IN_MEMORY,
                     self::METHOD => self::METHOD_FILE,
                 ];
-            } elseif (strpos($key, 'file://') === 0) {
+            } elseif (str_starts_with($key, 'file://')) {
                 $keyConfig = [
                     self::KEY => $key,
-                    self::STORE => self::STORE_IN_MEMORY,
                     self::METHOD => self::METHOD_FILE,
                 ];
             } else {
                 $keyConfig = [
                     self::KEY => $key,
-                    self::STORE => self::STORE_IN_MEMORY,
                     self::METHOD => self::METHOD_PLAIN,
                 ];
             }
@@ -357,15 +345,11 @@ class Jwt extends Component
         }
 
         $value = $keyConfig[self::KEY] ?? '';
-        $store = $keyConfig[self::STORE] ?? self::STORE_IN_MEMORY;
         $method = $keyConfig[self::METHOD] ?? self::METHOD_PLAIN;
         $passphrase = $keyConfig[self::PASSPHRASE] ?? '';
 
-        if (!is_string($value)) {
+        if (!is_string($value) || $value === '') {
             throw new InvalidConfigException('Invalid key value!');
-        }
-        if (!in_array($store, [self::STORE_IN_MEMORY, self::STORE_LOCAL_FILE_REFERENCE], true)) {
-            throw new InvalidConfigException('Invalid key store!');
         }
         if (!in_array($method, [self::METHOD_PLAIN, self::METHOD_BASE64, self::METHOD_FILE], true)) {
             throw new InvalidConfigException('Invalid key method!');
@@ -374,25 +358,14 @@ class Jwt extends Component
             throw new InvalidConfigException('Invalid key passphrase!');
         }
 
-        if ($store === self::STORE_IN_MEMORY) {
-            if ($value === '') {
-                return Signer\Key\InMemory::empty();
-            }
-            if ($method === self::METHOD_BASE64) {
-                return Signer\Key\InMemory::base64Encoded($value, $passphrase);
-            }
-            if ($method === self::METHOD_FILE) {
-                return Signer\Key\InMemory::file($value, $passphrase);
-            }
-
-            return Signer\Key\InMemory::plainText($value, $passphrase);
+        if ($method === self::METHOD_BASE64) {
+            return Signer\Key\InMemory::base64Encoded($value, $passphrase);
+        }
+        if ($method === self::METHOD_FILE) {
+            return Signer\Key\InMemory::file($value, $passphrase);
         }
 
-        if ($method !== self::METHOD_FILE) {
-            throw new InvalidConfigException('Invalid key store and method combination!');
-        }
-
-        return Signer\Key\InMemory::file($value, $passphrase);
+        return Signer\Key\InMemory::plainText($value, $passphrase);
     }
 
     /**
@@ -454,10 +427,10 @@ class Jwt extends Component
     /**
      * @throws InvalidConfigException
      */
-    private function prepareEncoder(): ?Encoder
+    private function prepareEncoder(): Encoder
     {
         if ($this->encoder === null) {
-            return null;
+            return new JoseEncoder();
         }
 
         /** @var Encoder $encoder */
@@ -469,10 +442,10 @@ class Jwt extends Component
     /**
      * @throws InvalidConfigException
      */
-    private function prepareDecoder(): ?Decoder
+    private function prepareDecoder(): Decoder
     {
         if ($this->decoder === null) {
-            return null;
+            return new JoseEncoder();
         }
 
         /** @var Decoder $decoder */
