@@ -120,9 +120,12 @@ class JwtHttpBearerAuth extends HttpBearerAuth
 
         $identity = null;
         $token = null;
+        $data = $matches[1];
 
         try {
-            $token = $this->processToken($matches[1]);
+            if (!empty($data)) {
+                $token = $this->processToken($data);
+            }
         } catch (Throwable $exception) {
             Yii::warning($exception->getMessage(), 'JwtHttpBearerAuth');
             if (!$this->throwException) {
@@ -148,7 +151,7 @@ class JwtHttpBearerAuth extends HttpBearerAuth
 
     /**
      * Parses and validates the JWT token.
-     * @param string $data data provided in HTTP header, presumably JWT
+     * @param non-empty-string $data data provided in HTTP header, presumably JWT
      * @throws InvalidConfigException
      */
     public function processToken(string $data): ?Token

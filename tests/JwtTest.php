@@ -13,10 +13,21 @@ use Lcobucci\JWT\Validation\Constraint\IdentifiedBy;
 use Lcobucci\JWT\Validation\RequiredConstraintsViolated;
 use PHPUnit\Framework\TestCase;
 use stdClass;
+use Yii;
 use yii\base\InvalidConfigException;
 
 class JwtTest extends TestCase
 {
+    private function getJwt(): Jwt
+    {
+        return new Jwt(
+            [
+                'signer' => Jwt::HS256,
+                'signingKey' => 'c2VjcmV0MXNlY3JldDFzZWNyZXQxc2VjcmV0M',
+            ]
+        );
+    }
+
     public function testAvailableSigners(): void
     {
         self::assertSame(
@@ -33,7 +44,7 @@ class JwtTest extends TestCase
                 Jwt::EDDSA => [Signer\Eddsa::class],
                 Jwt::BLAKE2B => [Signer\Blake2b::class],
             ],
-            (new Jwt())->signers,
+            $this->getJwt()->signers,
         );
     }
 
@@ -57,7 +68,7 @@ class JwtTest extends TestCase
                     Jwt::BLAKE2B,
                 ],
             ],
-            (new Jwt())->algorithmTypes,
+            $this->getJwt()->algorithmTypes,
         );
     }
 
@@ -70,7 +81,7 @@ class JwtTest extends TestCase
 
     public function testValidateSuccess(): void
     {
-        $jwt = new Jwt();
+        $jwt = $this->getJwt();
         $config = $jwt->getConfiguration();
         $config->setValidationConstraints(new IdentifiedBy('abc'));
         $token = $jwt->getBuilder()->identifiedBy('abc')->getToken($config->signer(), $config->signingKey());
@@ -79,7 +90,7 @@ class JwtTest extends TestCase
 
     public function testValidateSuccessWithStringToken(): void
     {
-        $jwt = new Jwt();
+        $jwt = $this->getJwt();
         $config = $jwt->getConfiguration();
         $config->setValidationConstraints(new IdentifiedBy('abc'));
         $token = $jwt->getBuilder()->identifiedBy('abc')->getToken(
@@ -91,7 +102,7 @@ class JwtTest extends TestCase
 
     public function testValidateFail(): void
     {
-        $jwt = new Jwt();
+        $jwt = $this->getJwt();
         $config = $jwt->getConfiguration();
         $config->setValidationConstraints(new IdentifiedBy('abc'));
         $token = $jwt->getBuilder()->identifiedBy('def')->getToken($config->signer(), $config->signingKey());
@@ -103,7 +114,7 @@ class JwtTest extends TestCase
      */
     public function testAssertSuccess(): void
     {
-        $jwt = new Jwt();
+        $jwt = $this->getJwt();
         $config = $jwt->getConfiguration();
         $config->setValidationConstraints(new IdentifiedBy('abc'));
         $token = $jwt->getBuilder()->identifiedBy('abc')->getToken($config->signer(), $config->signingKey());
@@ -115,7 +126,7 @@ class JwtTest extends TestCase
      */
     public function testAssertSuccessWithStringToken(): void
     {
-        $jwt = new Jwt();
+        $jwt = $this->getJwt();
         $config = $jwt->getConfiguration();
         $config->setValidationConstraints(new IdentifiedBy('abc'));
         $token = $jwt->getBuilder()->identifiedBy('abc')->getToken(
@@ -127,7 +138,7 @@ class JwtTest extends TestCase
 
     public function testAssertFail(): void
     {
-        $jwt = new Jwt();
+        $jwt = $this->getJwt();
         $config = $jwt->getConfiguration();
         $config->setValidationConstraints(new IdentifiedBy('abc'));
         $token = $jwt->getBuilder()->identifiedBy('def')->getToken($config->signer(), $config->signingKey());
@@ -135,20 +146,16 @@ class JwtTest extends TestCase
         $jwt->assert($token);
     }
 
-    public function providerForInvalidKey(): array
+    public static function providerForInvalidKey(): iterable
     {
-        return [
-            'empty' => ['', 'Empty string used as a key configuration!'],
-            'object' => [new stdClass(), 'Invalid key configuration!'],
-            'int value' => [[Jwt::KEY => 1], 'Invalid key value!'],
-            'array value' => [[Jwt::KEY => []], 'Invalid key value!'],
-            'object value' => [[Jwt::KEY => new stdClass()], 'Invalid key value!'],
-            'store' => [[Jwt::STORE => ''], 'Invalid key store!'],
-            'method' => [[Jwt::METHOD => ''], 'Invalid key method!'],
-            'int pass' => [[Jwt::PASSPHRASE => 1], 'Invalid key passphrase!'],
-            'array pass' => [[Jwt::PASSPHRASE => []], 'Invalid key passphrase!'],
-            'object pass' => [[Jwt::PASSPHRASE => new stdClass()], 'Invalid key passphrase!'],
-        ];
+        yield 'object' => [new stdClass(), 'Invalid key configuration!'];
+        yield 'int value' => [[Jwt::KEY => 1], 'Invalid key value!'];
+        yield 'array value' => [[Jwt::KEY => []], 'Invalid key value!'];
+        yield 'object value' => [[Jwt::KEY => new stdClass()], 'Invalid key value!'];
+        yield 'method' => [[Jwt::KEY => 'k', Jwt::METHOD => ''], 'Invalid key method!'];
+        yield 'int pass' => [[Jwt::KEY => 'k', Jwt::PASSPHRASE => 1], 'Invalid key passphrase!'];
+        yield 'array pass' => [[Jwt::KEY => 'k', Jwt::PASSPHRASE => []], 'Invalid key passphrase!'];
+        yield 'object pass' => [[Jwt::KEY => 'k', Jwt::PASSPHRASE => new stdClass()], 'Invalid key passphrase!'];
     }
 
     /**
@@ -171,7 +178,13 @@ class JwtTest extends TestCase
         $encoder = $this->createMock(Encoder::class);
         $encoder->expects(self::exactly(3))->method('base64UrlEncode');
 
-        $jwt = new Jwt(['encoder' => $encoder]);
+        $jwt = new Jwt(
+            [
+                'signer' => Jwt::HS256,
+                'signingKey' => 'c2VjcmV0MXNlY3JldDFzZWNyZXQxc2VjcmV0M',
+                'encoder' => $encoder,
+            ]
+        );
         $jwt->getBuilder()->getToken($jwt->getConfiguration()->signer(), $jwt->getConfiguration()->signingKey());
     }
 
@@ -179,9 +192,15 @@ class JwtTest extends TestCase
     {
         $decoder = $this->createMock(Decoder::class);
         $decoder->method('jsonDecode')->willReturn([]);
-        $decoder->expects(self::exactly(2))->method('base64UrlDecode');
+        $decoder->expects(self::exactly(3))->method('base64UrlDecode');
 
-        $jwt = new Jwt(['decoder' => $decoder]);
+        $jwt = new Jwt(
+            [
+                'signer' => Jwt::HS256,
+                'signingKey' => 'c2VjcmV0MXNlY3JldDFzZWNyZXQxc2VjcmV0M',
+                'decoder' => $decoder,
+            ]
+        );
         $jwt->parse(
             $jwt->getBuilder()->getToken(
                 $jwt->getConfiguration()->signer(),
@@ -192,18 +211,16 @@ class JwtTest extends TestCase
 
     public function testMethodsVisibility(): void
     {
-        $jwt = new Jwt();
+        $jwt = $this->getJwt();
         self::assertNotEmpty($jwt->getConfiguration());
         self::assertNotEmpty($jwt->getBuilder());
         self::assertNotEmpty($jwt->getParser());
     }
 
-    public function providerForWrongKeyNames(): array
+    public static function providerForWrongKeyNames(): iterable
     {
-        return [
-            '@' => ['_@bizley/tests/data/rs256.key'],
-            'file://' => ['_file://' . __DIR__ . '/data/rs256.key'],
-        ];
+        yield '@' => ['_@bizley/tests/data/rs256.key'];
+        yield 'file://' => ['_file://' . __DIR__ . '/data/rs256.key'];
     }
 
     /**
@@ -222,12 +239,10 @@ class JwtTest extends TestCase
         self::assertSame($key, $jwt->getConfiguration()->signingKey()->contents());
     }
 
-    public function providerForRightKeyNames(): array
+    public static function providerForRightKeyNames(): iterable
     {
-        return [
-            '@' => ['@bizley/tests/data/rs256.key'],
-            'file://' => ['file://' . __DIR__ . '/data/rs256.key'],
-        ];
+        yield '@' => ['@bizley/tests/data/rs256.key'];
+        yield 'file://' => ['file://' . __DIR__ . '/data/rs256.key'];
     }
 
     /**
@@ -300,13 +315,11 @@ cOJPB1eW2ny/UXZfeLwheuQfkr5grlke4Z0JiNd86CJ9NOnNIbMDl2PSj7cjMDQ=
         );
     }
 
-    public function providerForSignerSignatureConverter(): array
+    public static function providerForSignerSignatureConverter(): iterable
     {
-        return [
-            Jwt::ES256 => [Jwt::ES256],
-            Jwt::ES384 => [Jwt::ES384],
-            Jwt::ES512 => [Jwt::ES512],
-        ];
+        yield Jwt::ES256 => [Jwt::ES256];
+        yield Jwt::ES384 => [Jwt::ES384];
+        yield Jwt::ES512 => [Jwt::ES512];
     }
 
     /**
@@ -317,7 +330,7 @@ cOJPB1eW2ny/UXZfeLwheuQfkr5grlke4Z0JiNd86CJ9NOnNIbMDl2PSj7cjMDQ=
         new Jwt(['signer' => $signerId, 'signingKey' => ' ', 'verifyingKey' => ' ']);
         $this->assertInstanceOf(
             Signer\Ecdsa\MultibyteStringConverter::class,
-            \Yii::$container->get(Signer\Ecdsa\SignatureConverter::class)
+            Yii::$container->get(Signer\Ecdsa\SignatureConverter::class)
         );
     }
 }

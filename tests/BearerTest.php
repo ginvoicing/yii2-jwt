@@ -31,32 +31,34 @@ class BearerTest extends TestCase
 {
     protected function setUp(): void
     {
-        new Application([
-            'id' => 'test',
-            'basePath' => __DIR__,
-            'vendorPath' => __DIR__ . '/../vendor',
-            'components' => [
-                'user' => [
-                    'identityClass' => UserIdentity::class,
-                    'enableSession' => false,
+        new Application(
+            [
+                'id' => 'test',
+                'basePath' => __DIR__,
+                'vendorPath' => __DIR__ . '/../vendor',
+                'components' => [
+                    'user' => [
+                        'identityClass' => UserIdentity::class,
+                        'enableSession' => false,
+                    ],
+                    'request' => [
+                        'enableCookieValidation' => false,
+                        'scriptFile' => __DIR__ . '/index.php',
+                        'scriptUrl' => '/index.php',
+                    ],
+                    'jwt' => [
+                        'class' => Jwt::class,
+                        'signer' => Jwt::HS256,
+                        'signingKey' => 'c2VjcmV0MXNlY3JldDFzZWNyZXQxc2VjcmV0M',
+                    ],
                 ],
-                'request' => [
-                    'enableCookieValidation' => false,
-                    'scriptFile' => __DIR__ . '/index.php',
-                    'scriptUrl' => '/index.php',
+                'controllerMap' => [
+                    'test-auth' => TestAuthController::class,
+                    'test-stub' => TestStubController::class,
+                    'test-stub2' => TestStub2Controller::class,
                 ],
-                'jwt' => [
-                    'class' => Jwt::class,
-                    'signer' => Jwt::HS256,
-                    'signingKey' => 'c2VjcmV0MXNlY3JldDFzZWNyZXQxc2VjcmV0M',
-                ],
-            ],
-            'controllerMap' => [
-                'test-auth' => TestAuthController::class,
-                'test-stub' => TestStubController::class,
-                'test-stub2' => TestStub2Controller::class,
-            ],
-        ]);
+            ]
+        );
     }
 
     protected function getJwt(): Jwt
@@ -112,7 +114,9 @@ class BearerTest extends TestCase
 
         $now = new DateTimeImmutable();
 
-        $this->getJwt()->getConfiguration()->setValidationConstraints(new LooseValidAt(SystemClock::fromSystemTimezone()));
+        $this->getJwt()->getConfiguration()->setValidationConstraints(
+            new LooseValidAt(SystemClock::fromSystemTimezone())
+        );
 
         $token = $this->getJwt()->getBuilder()
             ->issuedAt($now->modify('-10 minutes'))
@@ -157,7 +161,9 @@ class BearerTest extends TestCase
     {
         $now = new DateTimeImmutable();
 
-        $this->getJwt()->getConfiguration()->setValidationConstraints(new LooseValidAt(SystemClock::fromSystemTimezone()));
+        $this->getJwt()->getConfiguration()->setValidationConstraints(
+            new LooseValidAt(SystemClock::fromSystemTimezone())
+        );
 
         $token = $this->getJwt()->getBuilder()
             ->relatedTo('test')
@@ -236,7 +242,7 @@ class BearerTest extends TestCase
 
     public function testMethodsVisibility(): void
     {
-        $filter = new JwtHttpBearerAuth(['jwt' => new Jwt()]);
+        $filter = new JwtHttpBearerAuth(['jwt' => $this->getJwt()]);
 
         $jwt = $filter->getJwtComponent();
         $jwt->getConfiguration()->setValidationConstraints(new IssuedBy('test'));
@@ -250,7 +256,7 @@ class BearerTest extends TestCase
 
     public function testFailVisibility(): void
     {
-        $filter = new TestJwtHttpBearerAuth(['jwt' => new Jwt()]);
+        $filter = new TestJwtHttpBearerAuth(['jwt' => $this->getJwt()]);
         $filter->fail($this->createMock(Response::class));
 
         self::assertSame(2, $filter->flag);
