@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace bizley\tests;
+namespace bizley\tests\standard;
 
 use bizley\jwt\Jwt;
 use Lcobucci\JWT\Signer\Hmac\Sha256;
@@ -119,8 +119,8 @@ class SignerTest extends TestCase
         yield 'RS256 with file handler' => [
             [
                 'signer' => Jwt::RS256,
-                'signingKey' => 'file://' . __DIR__ . '/data/rs256.key',
-                'verifyingKey' => 'file://' . __DIR__ . '/data/rs256.key.pub',
+                'signingKey' => 'file://' . __DIR__ . '/../data/rs256.key',
+                'verifyingKey' => 'file://' . __DIR__ . '/../data/rs256.key.pub',
             ],
             Jwt::RS256
         ];
@@ -128,10 +128,10 @@ class SignerTest extends TestCase
             [
                 'signer' => Jwt::RS256,
                 'signingKey' => [
-                    Jwt::KEY => 'file://' . __DIR__ . '/data/rs256.key',
+                    Jwt::KEY => 'file://' . __DIR__ . '/../data/rs256.key',
                     Jwt::METHOD => Jwt::METHOD_FILE,
                 ],
-                'verifyingKey' => 'file://' . __DIR__ . '/data/rs256.key.pub',
+                'verifyingKey' => 'file://' . __DIR__ . '/../data/rs256.key.pub',
             ],
             Jwt::RS256
         ];

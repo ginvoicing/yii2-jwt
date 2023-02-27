@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace bizley\tests;
+namespace bizley\tests\standard;
 
 use bizley\jwt\Jwt;
 use bizley\tests\stubs\YiiConstraint;

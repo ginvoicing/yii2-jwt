@@ -43,7 +43,7 @@ use function get_class;
 class JwtHttpBearerAuth extends HttpBearerAuth
 {
     /**
-     * @var string|array<string, mixed>|Jwt application component ID of the JWT handler, configuration array,
+     * @var string|array<string, mixed>|JwtTools|Jwt application component ID of the JWT handler, configuration array,
      * or JWT handler object itself. By default, it assumes that component of ID "jwt" has been configured.
      */
     public $jwt = 'jwt';
@@ -81,13 +81,13 @@ class JwtHttpBearerAuth extends HttpBearerAuth
         }
     }
 
-    private ?Jwt $JWTComponent = null;
+    private Jwt|JwtTools|null $JWTComponent = null;
 
-    public function getJwtComponent(): Jwt
+    public function getJwtComponent(): Jwt|JwtTools
     {
         if ($this->JWTComponent === null) {
-            /** @var Jwt $jwt */
-            $jwt = Instance::ensure($this->jwt, Jwt::class);
+            /** @var Jwt|JwtTools $jwt */
+            $jwt = Instance::ensure($this->jwt, JwtTools::class);
             $this->JWTComponent = $jwt;
         }
 

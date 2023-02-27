@@ -14,7 +14,7 @@
         "@default": true,
         "MethodCallRemoval": {
             "ignore": [
-                "bizley\\jwt\\Jwt::init::186",
+                "bizley\\jwt\\Jwt::init::124",
                 "bizley\\jwt\\JwtHttpBearerAuth::init::77"
             ]
         }
