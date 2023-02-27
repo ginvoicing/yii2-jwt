@@ -50,8 +50,6 @@ class Jwt extends Component
     public const EDDSA = 'EdDSA';
     public const BLAKE2B = 'BLAKE2B';
 
-    public const STORE_IN_MEMORY = 'in_memory';
-
     public const METHOD_PLAIN = 'plain';
     public const METHOD_BASE64 = 'base64';
     public const METHOD_FILE = 'file';
@@ -60,7 +58,6 @@ class Jwt extends Component
     public const ASYMMETRIC = 'asymmetric';
 
     public const KEY = 'key';
-    public const STORE = 'store';
     public const METHOD = 'method';
     public const PASSPHRASE = 'passphrase';
 
@@ -79,7 +76,7 @@ class Jwt extends Component
      *      'method' => Jwt::METHOD_PLAIN,
      *      'passphrase' => '',
      * ]
-     * In case a simple string is provided and it does start with 'file://' (direct file path) or '@' (Yii alias)
+     * In case a simple string is provided, and it does start with 'file://' (direct file path) or '@' (Yii alias)
      * the following configuration is assumed:
      * [
      *      'key' => // the original given value,

@@ -129,7 +129,6 @@ class SignerTest extends TestCase
                 'signer' => Jwt::RS256,
                 'signingKey' => [
                     Jwt::KEY => 'file://' . __DIR__ . '/data/rs256.key',
-                    Jwt::STORE => Jwt::STORE_IN_MEMORY,
                     Jwt::METHOD => Jwt::METHOD_FILE,
                 ],
                 'verifyingKey' => 'file://' . __DIR__ . '/data/rs256.key.pub',
