@@ -35,19 +35,40 @@ and run `composer update` or alternatively run `composer require bizley/jwt:^4.0
 
 ## Basic usage
 
-Add `jwt` component to your configuration file:
+Add `jwt` component to your configuration file.
+
+If your application is both the issuer and the consumer of JWT (the common case, a.k.a. Standard version) 
+use `bizley\jwt\Jwt` component:
 
 ```php
 [
     'components' => [
         'jwt' => [
             'class' => \bizley\jwt\Jwt::class,
-            'signer' => ... // Signer ID, or signer object, or signer configuration
-            'signingKey' => ... // Secret key string or path to the signing key file
+            'signer' => ... // Signer ID, or signer object, or signer configuration, see "Available signers" below
+            'signingKey' => ... // Secret key string or path to the signing key file, see "Keys" below
+            // ... any additional configuration here
         ],
     ],
 ],
 ```
+
+If your application just needs some special JWT tools (like validator or parser, a.k.a. Toolset version) 
+use `bizley\jwt\JwtTools` component:
+
+```php
+[
+    'components' => [
+        'jwt' => [
+            'class' => \bizley\jwt\JwtTools::class,
+            // ... any additional configuration here
+        ],
+    ],
+],
+```
+
+Of course, if you are already using the Standard version component, you don't need to define the Toolset version 
+component, since the former already provides all the tools.
 
 If you are struggling with the concept of API JWT, here is an [EXAMPLE](INSTRUCTION.md) of how to quickly put all 
 pieces together.
@@ -65,10 +86,10 @@ Asymmetric:
 
 Signer IDs are available as constants (like Jwt::HS256).
 
-You can also provide your own signer, either as an instance of Lcobucci\JWT\Signer or by adding its config to `signers` 
+You can also provide your own signer, either as an instance of `Lcobucci\JWT\Signer` or by adding its config to `signers` 
 and `algorithmTypes` and using its ID for `signer`.
 
-> As stated in lcobucci/jwt documentation: Although BLAKE2B is fantastic due to its performance, it's not JWT standard 
+> As stated in `lcobucci/jwt` documentation: Although BLAKE2B is fantastic due to its performance, it's not JWT standard 
 > and won't necessarily be offered by other libraries.
 
 ### Note on signers and minimum bits requirement
@@ -79,7 +100,7 @@ the `InvalidKeyProvided` is thrown.
 ### Keys
 
 For symmetric signers `signingKey` is required. For asymmetric ones you also need to set `verifyingKey`. Keys can be 
-provided as simple strings, configuration arrays, or instances of Lcobucci\JWT\Signer\Key.
+provided as simple strings, configuration arrays, or instances of `Lcobucci\JWT\Signer\Key`.
 
 Configuration array can be as the following:
 
@@ -91,10 +112,10 @@ Configuration array can be as the following:
 ]
 ```
 
-- key (Jwt::KEY) - _string_, default `''`,
-- passphrase (Jwt::PASSPHRASE) - _string_, default `''`,
-- method (Jwt::METHOD) - _string_, default `Jwt::METHOD_PLAIN`,
-  available: `Jwt::METHOD_PLAIN`, `Jwt::METHOD_BASE64`, `Jwt::METHOD_FILE` 
+- key (`bizley\jwt\Jwt::KEY`) - _string_, default `''`,
+- passphrase (`bizley\jwt\Jwt::PASSPHRASE`) - _string_, default `''`,
+- method (`bizley\jwt\Jwt::METHOD`) - _string_, default `bizley\jwt\Jwt::METHOD_PLAIN`,
+  available: `bizley\jwt\Jwt::METHOD_PLAIN`, `bizley\jwt\Jwt::METHOD_BASE64`, `bizley\jwt\Jwt::METHOD_FILE` 
   (see https://lcobucci-jwt.readthedocs.io/en/latest/configuration/)
   
 Simple string keys are shortcuts to the following array configs:
@@ -103,7 +124,7 @@ Simple string keys are shortcuts to the following array configs:
   [
       'key' => /* given key itself */,
       'passphrase' => '',
-      'method' => Jwt::METHOD_FILE,
+      'method' => \bizley\jwt\Jwt::METHOD_FILE,
   ]
   ```
   Detecting `@` at the beginning assumes Yii alias has been provided, so it will be resolved with `Yii::getAlias()`.
@@ -113,15 +134,17 @@ Simple string keys are shortcuts to the following array configs:
   [
       'key' => /* given key itself */,
       'passphrase' => '',
-      'method' => Jwt::METHOD_PLAIN,
+      'method' => \bizley\jwt\Jwt::METHOD_PLAIN,
   ]
   ```
 
 ### Issuing a token example:
 
+Standard version:
+
 ```php
 $now = new \DateTimeImmutable();
-/** @var \Lcobucci\JWT\Token\Plain $token */
+/** @var \Lcobucci\JWT\Token\UnencryptedToken $token */
 $token = Yii::$app->jwt->getBuilder()
     // Configures the issuer (iss claim)
     ->issuedBy('http://example.com')
@@ -147,12 +170,33 @@ $token = Yii::$app->jwt->getBuilder()
 $tokenString = $token->toString();
 ```
 
+The same in Toolset version:
+
+```php
+$now = new \DateTimeImmutable();
+/** @var \Lcobucci\JWT\Token\UnencryptedToken $token */
+$token = Yii::$app->jwt->getBuilder()
+    ->issuedBy('http://example.com')
+    ->permittedFor('http://example.org')
+    ->identifiedBy('4f1g23a12aa')
+    ->issuedAt($now)
+    ->canOnlyBeUsedAfter($now->modify('+1 minute'))
+    ->expiresAt($now->modify('+1 hour'))
+    ->withClaim('uid', 1)
+    ->withHeader('foo', 'bar')
+    ->getToken(
+        Yii::$app->jwt->buildSigner(/* signer definition */),
+        Yii::$app->jwt->buildKey(/* signing key definition */)
+    );
+$tokenString = $token->toString();
+```
+
 See https://lcobucci-jwt.readthedocs.io/en/latest/issuing-tokens/ for more info.
 
 ### Parsing a token
 
 ```php
-/** @var string $jwt */
+/** @var non-empty-string $jwt */
 /** @var \Lcobucci\JWT\Token $token */
 $token = Yii::$app->jwt->parse($jwt);
 ```
@@ -165,7 +209,7 @@ You can validate a token or perform an assertion on it (see https://lcobucci-jwt
 
 For validation use:
 ```php
-/** @var \Lcobucci\JWT\Token | string $token */                                      
+/** @var \Lcobucci\JWT\Token | non-empty-string $token */                                      
 /** @var bool $result */
 $result = Yii::$app->jwt->validate($token);
 ```
@@ -179,7 +223,7 @@ Yii::$app->jwt->assert($token);
 You **MUST** provide at least one constraint, otherwise `Lcobucci\JWT\Validation\NoConstraintsGiven` exception will be 
 thrown. There are several ways to provide constraints:
 
-- directly:
+- directly (Standard version only):
   ```php
   Yii::$app->jwt->getConfiguration()->setValidationConstraints(/* constaints here */);
   ```
@@ -195,7 +239,7 @@ thrown. There are several ways to provide constraints:
           
           or
           anonymous function that can be resolved as array of Constraint instances with signature
-          `function(\bizley\jwt\Jwt $jwt)` where $jwt will be an instance of this component
+          `function(\bizley\jwt\Jwt|\bizley\jwt\JwtTools $jwt)` where $jwt will be an instance of used component
       */,
   ]
   ```
@@ -224,7 +268,8 @@ class ExampleController extends Controller
 ```
 
 There are special options available:
-- jwt - _string_ ID of component (default with `'jwt'`), component configuration _array_, or an instance of `bizley\jwt\Jwt`,
+- jwt - _string_ ID of component (default with `'jwt'`), component configuration _array_, or an instance of `bizley\jwt\Jwt` 
+  or `bizley\jwt\JwtTools`,
 - auth - callable or `null` (default) - anonymous function with signature `function (\Lcobucci\JWT\Token $token)` that 
   should return identity of user authenticated with the JWT payload information. If $auth is not provided method 
   `yii\web\User::loginByAccessToken()` will be called instead.

@@ -2,10 +2,11 @@
 
 declare(strict_types=1);
 
-namespace bizley\tests;
+namespace bizley\tests\toolset;
 
 use bizley\jwt\Jwt;
-use bizley\tests\stubs\JwtStub;
+use bizley\jwt\JwtTools;
+use Lcobucci\JWT\ClaimsFormatter;
 use Lcobucci\JWT\Decoder;
 use Lcobucci\JWT\Encoder;
 use Lcobucci\JWT\Signer;
@@ -16,16 +17,11 @@ use stdClass;
 use Yii;
 use yii\base\InvalidConfigException;
 
-class JwtTest extends TestCase
+class JwtToolsTest extends TestCase
 {
-    private function getJwt(): Jwt
+    private function getJwt(): JwtTools
     {
-        return new Jwt(
-            [
-                'signer' => Jwt::HS256,
-                'signingKey' => 'c2VjcmV0MXNlY3JldDFzZWNyZXQxc2VjcmV0M',
-            ]
-        );
+        return new JwtTools();
     }
 
     public function testAvailableSigners(): void
@@ -48,54 +44,24 @@ class JwtTest extends TestCase
         );
     }
 
-    public function testAvailableAlgorithmTypes(): void
-    {
-        self::assertSame(
-            [
-                Jwt::SYMMETRIC => [
-                    Jwt::HS256,
-                    Jwt::HS384,
-                    Jwt::HS512,
-                ],
-                Jwt::ASYMMETRIC => [
-                    Jwt::RS256,
-                    Jwt::RS384,
-                    Jwt::RS512,
-                    Jwt::ES256,
-                    Jwt::ES384,
-                    Jwt::ES512,
-                    Jwt::EDDSA,
-                    Jwt::BLAKE2B,
-                ],
-            ],
-            $this->getJwt()->algorithmTypes,
-        );
-    }
-
-    public function testNoInit(): void
-    {
-        $this->expectException(InvalidConfigException::class);
-        $jwtStub = new JwtStub();
-        $jwtStub->getConfiguration();
-    }
-
     public function testValidateSuccess(): void
     {
         $jwt = $this->getJwt();
-        $config = $jwt->getConfiguration();
-        $config->setValidationConstraints(new IdentifiedBy('abc'));
-        $token = $jwt->getBuilder()->identifiedBy('abc')->getToken($config->signer(), $config->signingKey());
+        $jwt->validationConstraints = [new IdentifiedBy('abc')];
+        $token = $jwt->getBuilder()->identifiedBy('abc')->getToken(
+            $jwt->buildSigner(Jwt::HS256),
+            $jwt->buildKey('c2VjcmV0MXNlY3JldDFzZWNyZXQxc2VjcmV0M')
+        );
         self::assertTrue($jwt->validate($token));
     }
 
     public function testValidateSuccessWithStringToken(): void
     {
         $jwt = $this->getJwt();
-        $config = $jwt->getConfiguration();
-        $config->setValidationConstraints(new IdentifiedBy('abc'));
+        $jwt->validationConstraints = [new IdentifiedBy('abc')];
         $token = $jwt->getBuilder()->identifiedBy('abc')->getToken(
-            $config->signer(),
-            $config->signingKey()
+            $jwt->buildSigner(Jwt::HS256),
+            $jwt->buildKey('c2VjcmV0MXNlY3JldDFzZWNyZXQxc2VjcmV0M')
         )->toString();
         self::assertTrue($jwt->validate($token));
     }
@@ -103,9 +69,11 @@ class JwtTest extends TestCase
     public function testValidateFail(): void
     {
         $jwt = $this->getJwt();
-        $config = $jwt->getConfiguration();
-        $config->setValidationConstraints(new IdentifiedBy('abc'));
-        $token = $jwt->getBuilder()->identifiedBy('def')->getToken($config->signer(), $config->signingKey());
+        $jwt->validationConstraints = [new IdentifiedBy('abc')];
+        $token = $jwt->getBuilder()->identifiedBy('def')->getToken(
+            $jwt->buildSigner(Jwt::HS256),
+            $jwt->buildKey('c2VjcmV0MXNlY3JldDFzZWNyZXQxc2VjcmV0M')
+        );
         self::assertFalse($jwt->validate($token));
     }
 
@@ -115,9 +83,11 @@ class JwtTest extends TestCase
     public function testAssertSuccess(): void
     {
         $jwt = $this->getJwt();
-        $config = $jwt->getConfiguration();
-        $config->setValidationConstraints(new IdentifiedBy('abc'));
-        $token = $jwt->getBuilder()->identifiedBy('abc')->getToken($config->signer(), $config->signingKey());
+        $jwt->validationConstraints = [new IdentifiedBy('abc')];
+        $token = $jwt->getBuilder()->identifiedBy('abc')->getToken(
+            $jwt->buildSigner(Jwt::HS256),
+            $jwt->buildKey('c2VjcmV0MXNlY3JldDFzZWNyZXQxc2VjcmV0M')
+        );
         $jwt->assert($token);
     }
 
@@ -127,11 +97,10 @@ class JwtTest extends TestCase
     public function testAssertSuccessWithStringToken(): void
     {
         $jwt = $this->getJwt();
-        $config = $jwt->getConfiguration();
-        $config->setValidationConstraints(new IdentifiedBy('abc'));
+        $jwt->validationConstraints = [new IdentifiedBy('abc')];
         $token = $jwt->getBuilder()->identifiedBy('abc')->getToken(
-            $config->signer(),
-            $config->signingKey()
+            $jwt->buildSigner(Jwt::HS256),
+            $jwt->buildKey('c2VjcmV0MXNlY3JldDFzZWNyZXQxc2VjcmV0M')
         )->toString();
         $jwt->assert($token);
     }
@@ -139,9 +108,11 @@ class JwtTest extends TestCase
     public function testAssertFail(): void
     {
         $jwt = $this->getJwt();
-        $config = $jwt->getConfiguration();
-        $config->setValidationConstraints(new IdentifiedBy('abc'));
-        $token = $jwt->getBuilder()->identifiedBy('def')->getToken($config->signer(), $config->signingKey());
+        $jwt->validationConstraints = [new IdentifiedBy('abc')];
+        $token = $jwt->getBuilder()->identifiedBy('def')->getToken(
+            $jwt->buildSigner(Jwt::HS256),
+            $jwt->buildKey('c2VjcmV0MXNlY3JldDFzZWNyZXQxc2VjcmV0M')
+        );
         $this->expectException(RequiredConstraintsViolated::class);
         $jwt->assert($token);
     }
@@ -165,12 +136,7 @@ class JwtTest extends TestCase
     public function testInvalidKey($key, string $message): void
     {
         $this->expectExceptionMessage($message);
-        new Jwt(
-            [
-                'signer' => Jwt::HS256,
-                'signingKey' => $key
-            ]
-        );
+        (new JwtTools())->buildKey($key);
     }
 
     public function testCustomEncoder(): void
@@ -178,14 +144,11 @@ class JwtTest extends TestCase
         $encoder = $this->createMock(Encoder::class);
         $encoder->expects(self::exactly(3))->method('base64UrlEncode');
 
-        $jwt = new Jwt(
-            [
-                'signer' => Jwt::HS256,
-                'signingKey' => 'c2VjcmV0MXNlY3JldDFzZWNyZXQxc2VjcmV0M',
-                'encoder' => $encoder,
-            ]
+        $jwt = new JwtTools(['encoder' => $encoder]);
+        $jwt->getBuilder()->getToken(
+            $jwt->buildSigner(Jwt::HS256),
+            $jwt->buildKey('c2VjcmV0MXNlY3JldDFzZWNyZXQxc2VjcmV0M')
         );
-        $jwt->getBuilder()->getToken($jwt->getConfiguration()->signer(), $jwt->getConfiguration()->signingKey());
     }
 
     public function testCustomDecoder(): void
@@ -203,8 +166,8 @@ class JwtTest extends TestCase
         );
         $jwt->parse(
             $jwt->getBuilder()->getToken(
-                $jwt->getConfiguration()->signer(),
-                $jwt->getConfiguration()->signingKey()
+                $jwt->buildSigner(Jwt::HS256),
+                $jwt->buildKey('c2VjcmV0MXNlY3JldDFzZWNyZXQxc2VjcmV0M')
             )->toString()
         );
     }
@@ -212,7 +175,6 @@ class JwtTest extends TestCase
     public function testMethodsVisibility(): void
     {
         $jwt = $this->getJwt();
-        self::assertNotEmpty($jwt->getConfiguration());
         self::assertNotEmpty($jwt->getBuilder());
         self::assertNotEmpty($jwt->getParser());
     }
@@ -242,7 +204,7 @@ class JwtTest extends TestCase
     public static function providerForRightKeyNames(): iterable
     {
         yield '@' => ['@bizley/tests/data/rs256.key'];
-        yield 'file://' => ['file://' . __DIR__ . '/data/rs256.key'];
+        yield 'file://' => ['file://' . __DIR__ . '/../data/rs256.key'];
     }
 
     /**
@@ -331,6 +293,16 @@ cOJPB1eW2ny/UXZfeLwheuQfkr5grlke4Z0JiNd86CJ9NOnNIbMDl2PSj7cjMDQ=
         $this->assertInstanceOf(
             Signer\Ecdsa\MultibyteStringConverter::class,
             Yii::$container->get(Signer\Ecdsa\SignatureConverter::class)
+        );
+    }
+
+    public function testBuilderWithCustomClaimsFormatter(): void
+    {
+        $formatter = $this->createMock(ClaimsFormatter::class);
+        $formatter->expects($this->once())->method('formatClaims');
+        $this->getJwt()->getBuilder($formatter)->getToken(
+            $this->getJwt()->buildSigner(Jwt::HS256),
+            $this->getJwt()->buildKey('c2VjcmV0MXNlY3JldDFzZWNyZXQxc2VjcmV0M')
         );
     }
 }

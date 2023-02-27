@@ -2,10 +2,11 @@
 
 declare(strict_types=1);
 
-namespace bizley\tests;
+namespace bizley\tests\toolset;
 
 use bizley\jwt\Jwt;
 use bizley\jwt\JwtHttpBearerAuth;
+use bizley\jwt\JwtTools;
 use bizley\tests\stubs\TestAuthController;
 use bizley\tests\stubs\TestJwtHttpBearerAuth;
 use bizley\tests\stubs\TestStub2Controller;
@@ -47,9 +48,7 @@ class BearerTest extends TestCase
                         'scriptUrl' => '/index.php',
                     ],
                     'jwt' => [
-                        'class' => Jwt::class,
-                        'signer' => Jwt::HS256,
-                        'signingKey' => 'c2VjcmV0MXNlY3JldDFzZWNyZXQxc2VjcmV0M',
+                        'class' => JwtTools::class,
                     ],
                 ],
                 'controllerMap' => [
@@ -61,7 +60,7 @@ class BearerTest extends TestCase
         );
     }
 
-    protected function getJwt(): Jwt
+    protected function getJwt(): JwtTools
     {
         return Yii::$app->jwt;
     }
@@ -114,14 +113,15 @@ class BearerTest extends TestCase
 
         $now = new DateTimeImmutable();
 
-        $this->getJwt()->getConfiguration()->setValidationConstraints(
-            new LooseValidAt(SystemClock::fromSystemTimezone())
-        );
+        $this->getJwt()->validationConstraints = [new LooseValidAt(SystemClock::fromSystemTimezone())];
 
         $token = $this->getJwt()->getBuilder()
             ->issuedAt($now->modify('-10 minutes'))
             ->expiresAt($now->modify('-5 minutes'))
-            ->getToken($this->getJwt()->getConfiguration()->signer(), $this->getJwt()->getConfiguration()->signingKey())
+            ->getToken(
+                $this->getJwt()->buildSigner(Jwt::HS256),
+                $this->getJwt()->buildKey('c2VjcmV0MXNlY3JldDFzZWNyZXQxc2VjcmV0M')
+            )
             ->toString();
 
         Yii::$app->request->headers->set('Authorization', "Bearer $token");
@@ -135,16 +135,19 @@ class BearerTest extends TestCase
     {
         $now = new DateTimeImmutable();
 
-        $this->getJwt()->getConfiguration()->setValidationConstraints(
+        $this->getJwt()->validationConstraints = [
             new LooseValidAt(SystemClock::fromSystemTimezone()),
             new IssuedBy('test')
-        );
+        ];
 
         $token = $this->getJwt()->getBuilder()
             ->issuedAt($now)
             ->issuedBy('test')
             ->expiresAt($now->modify('+1 hour'))
-            ->getToken($this->getJwt()->getConfiguration()->signer(), $this->getJwt()->getConfiguration()->signingKey())
+            ->getToken(
+                $this->getJwt()->buildSigner(Jwt::HS256),
+                $this->getJwt()->buildKey('c2VjcmV0MXNlY3JldDFzZWNyZXQxc2VjcmV0M')
+            )
             ->toString();
 
         UserIdentity::$token = $token;
@@ -161,15 +164,16 @@ class BearerTest extends TestCase
     {
         $now = new DateTimeImmutable();
 
-        $this->getJwt()->getConfiguration()->setValidationConstraints(
-            new LooseValidAt(SystemClock::fromSystemTimezone())
-        );
+        $this->getJwt()->validationConstraints = [new LooseValidAt(SystemClock::fromSystemTimezone())];
 
         $token = $this->getJwt()->getBuilder()
             ->relatedTo('test')
             ->issuedAt($now)
             ->expiresAt($now->modify('+1 hour'))
-            ->getToken($this->getJwt()->getConfiguration()->signer(), $this->getJwt()->getConfiguration()->signingKey());
+            ->getToken(
+                $this->getJwt()->buildSigner(Jwt::HS256),
+                $this->getJwt()->buildKey('c2VjcmV0MXNlY3JldDFzZWNyZXQxc2VjcmV0M')
+            );
 
         $JWT = $token->toString();
 
@@ -193,13 +197,16 @@ class BearerTest extends TestCase
 
         $now = new DateTimeImmutable();
 
-        $this->getJwt()->getConfiguration()->setValidationConstraints(new LooseValidAt(SystemClock::fromSystemTimezone()));
+        $this->getJwt()->validationConstraints = [new LooseValidAt(SystemClock::fromSystemTimezone())];
 
         $token = $this->getJwt()->getBuilder()
             ->relatedTo('test')
             ->issuedAt($now)
             ->expiresAt($now->modify('+1 hour'))
-            ->getToken($this->getJwt()->getConfiguration()->signer(), $this->getJwt()->getConfiguration()->signingKey());
+            ->getToken(
+                $this->getJwt()->buildSigner(Jwt::HS256),
+                $this->getJwt()->buildKey('c2VjcmV0MXNlY3JldDFzZWNyZXQxc2VjcmV0M')
+            );
 
         $JWT = $token->toString();
 
@@ -220,13 +227,16 @@ class BearerTest extends TestCase
 
         $now = new DateTimeImmutable();
 
-        $this->getJwt()->getConfiguration()->setValidationConstraints(new LooseValidAt(SystemClock::fromSystemTimezone()));
+        $this->getJwt()->validationConstraints = [new LooseValidAt(SystemClock::fromSystemTimezone())];
 
         $token = $this->getJwt()->getBuilder()
             ->relatedTo('test')
             ->issuedAt($now)
             ->expiresAt($now->modify('+1 hour'))
-            ->getToken($this->getJwt()->getConfiguration()->signer(), $this->getJwt()->getConfiguration()->signingKey());
+            ->getToken(
+                $this->getJwt()->buildSigner(Jwt::HS256),
+                $this->getJwt()->buildKey('c2VjcmV0MXNlY3JldDFzZWNyZXQxc2VjcmV0M')
+            );
 
         $JWT = $token->toString();
 
@@ -245,11 +255,11 @@ class BearerTest extends TestCase
         $filter = new JwtHttpBearerAuth(['jwt' => $this->getJwt()]);
 
         $jwt = $filter->getJwtComponent();
-        $jwt->getConfiguration()->setValidationConstraints(new IssuedBy('test'));
+        $jwt->validationConstraints = [new IssuedBy('test')];
         self::assertNotEmpty($filter->processToken(
             $jwt->getBuilder()->issuedBy('test')->getToken(
-                $jwt->getConfiguration()->signer(),
-                $jwt->getConfiguration()->signingKey()
+                $jwt->buildSigner(Jwt::HS256),
+                $jwt->buildKey('c2VjcmV0MXNlY3JldDFzZWNyZXQxc2VjcmV0M')
             )->toString()
         ));
     }
@@ -274,7 +284,10 @@ class BearerTest extends TestCase
         Yii::setLogger($logger);
 
         $token = $this->getJwt()->getBuilder()
-            ->getToken($this->getJwt()->getConfiguration()->signer(), $this->getJwt()->getConfiguration()->signingKey())
+            ->getToken(
+                $this->getJwt()->buildSigner(Jwt::HS256),
+                $this->getJwt()->buildKey('c2VjcmV0MXNlY3JldDFzZWNyZXQxc2VjcmV0M')
+            )
             ->toString();
 
         Yii::$app->request->headers->set('Authorization', "Bearer $token");
