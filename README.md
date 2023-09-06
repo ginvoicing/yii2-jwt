@@ -1,7 +1,7 @@
 ![Latest Stable Version](https://img.shields.io/packagist/v/bizley/jwt.svg)
 [![Total Downloads](https://img.shields.io/packagist/dt/bizley/jwt.svg)](https://packagist.org/packages/bizley/jwt)
 ![License](https://img.shields.io/packagist/l/bizley/jwt.svg)
-[![Infection MSI](https://badge.stryker-mutator.io/github.com/bizley/yii2-jwt/master)](https://infection.github.io)
+[![Mutation testing badge](https://img.shields.io/endpoint?style=flat&url=https%3A%2F%2Fbadge-api.stryker-mutator.io%2Fgithub.com%2Fbizley%2Fyii2-jwt%2Fmaster)](https://dashboard.stryker-mutator.io/reports/github.com/bizley/yii2-jwt/master)
 
 # JWT Integration For Yii 2
 
