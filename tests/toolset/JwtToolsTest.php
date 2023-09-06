@@ -289,6 +289,7 @@ cOJPB1eW2ny/UXZfeLwheuQfkr5grlke4Z0JiNd86CJ9NOnNIbMDl2PSj7cjMDQ=
      */
     public function testPrepareSignatureConverter(string $signerId): void
     {
+        Yii::$container->clear(Signer\Ecdsa\SignatureConverter::class);
         new Jwt(['signer' => $signerId, 'signingKey' => ' ', 'verifyingKey' => ' ']);
         $this->assertInstanceOf(
             Signer\Ecdsa\MultibyteStringConverter::class,
