@@ -188,6 +188,38 @@ class Jwt extends JwtTools
         return $this->getConfiguration()->validator();
     }
 
+
+    /**
+     * Get JSON Web Key Set array for RSA256.
+     * 
+     * @warning: only working for RSA256
+     * @param string $key_id This is a random alphanumeric key to be used in kid attribute of the jwsk array
+     * @return array of jwks keys for given Algorithm
+     */
+    
+    public function getJwks(string $keyId): array {
+      $keyInfo = openssl_pkey_get_details(
+        openssl_pkey_get_private(
+            $this->buildKey($this->signingKey)->contents()
+        )
+      );
+      $jwks = [];
+      if($this->signer === self::RS256) {
+        $jwks = [
+            'kty' => 'RSA',
+            'alg' => self::RS256,
+            'use' => 'sig',
+            'n' => $this->prepareEncoder()->base64UrlEncode($keyInfo['rsa']['n']),
+            'e' => $this->prepareEncoder()->base64UrlEncode($keyInfo['rsa']['e']),
+            'kid' => $keyId
+          ];
+      }else {
+        throw new InvalidConfigException('Unsupported algorithm for jwks!');
+      }
+      
+      return $jwks;
+    }
+
     /**
      * This method goes through every single constraint in the set, groups all the violations, and throws an exception
      * with the grouped violations.
