@@ -198,26 +198,24 @@ class Jwt extends JwtTools
      */
     
     public function getJwks(string $keyId): array {
-      $keyInfo = openssl_pkey_get_details(
-        openssl_pkey_get_private(
-            $this->buildKey($this->signingKey)->contents(),
-            $this->buildKey($this->signingKey)->passphrase()
-        )
-      );
-      $jwks = [];
-      if($this->signer === self::RS256) {
-        $jwks = [
-            'kty' => 'RSA',
-            'alg' => self::RS256,
-            'use' => 'sig',
-            'n' => $this->prepareEncoder()->base64UrlEncode($keyInfo['rsa']['n']),
-            'e' => $this->prepareEncoder()->base64UrlEncode($keyInfo['rsa']['e']),
-            'kid' => $keyId
-          ];
-      }else {
-        throw new InvalidConfigException('Unsupported algorithm for jwks!');
-      }
-
+      if(\in_array($this->signer, $this->algorithmTypes[self::ASYMMETRIC], true)) {
+        $keyInfo = openssl_pkey_get_details(
+            openssl_pkey_get_private(
+                $this->buildKey($this->signingKey)->contents(),
+                $this->buildKey($this->signingKey)->passphrase()
+            )
+        );
+        if($this->signer === self::RS256) {
+            $jwks = [
+                'kty' => 'RSA',
+                'alg' => self::RS256,
+                'use' => 'sig',
+                'n' => $this->prepareEncoder()->base64UrlEncode($keyInfo['rsa']['n']),
+                'e' => $this->prepareEncoder()->base64UrlEncode($keyInfo['rsa']['e']),
+                'kid' => $keyId
+            ];
+            }
+        }
       return $jwks;
     }
 
