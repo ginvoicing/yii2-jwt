@@ -200,7 +200,8 @@ class Jwt extends JwtTools
     public function getJwks(string $keyId): array {
       $keyInfo = openssl_pkey_get_details(
         openssl_pkey_get_private(
-            $this->buildKey($this->signingKey)->contents()
+            $this->buildKey($this->signingKey)->contents(),
+            $this->buildKey($this->signingKey)->passphrase()
         )
       );
       $jwks = [];
@@ -216,7 +217,7 @@ class Jwt extends JwtTools
       }else {
         throw new InvalidConfigException('Unsupported algorithm for jwks!');
       }
-      
+
       return $jwks;
     }
 
