@@ -5,10 +5,6 @@ declare(strict_types=1);
 namespace bizley\tests\standard;
 
 use bizley\jwt\Jwt;
-use Lcobucci\JWT\Signer\Hmac\Sha256;
-use Lcobucci\JWT\Signer\InvalidKeyProvided;
-use Lcobucci\JWT\Signer\Key\InMemory;
-use Lcobucci\JWT\Validation\Constraint\SignedWith;
 use PHPUnit\Framework\TestCase;
 use Yii;
 use yii\base\InvalidConfigException;
@@ -33,81 +29,6 @@ class JwksTest extends TestCase
 
     public static function providerForSigners(): iterable
     {
-        // yield 'Direct signer provided' => [
-        //     [
-        //         'signer' => new Sha256(),
-        //         'signingKey' => 'secret1secret1secret1secret1secret1secret1',
-        //     ],
-        //     Jwt::HS256
-        // ];
-        // yield 'Direct key provided' => [
-        //     [
-        //         'signer' => Jwt::HS256,
-        //         'signingKey' => InMemory::plainText('secret1secret1secret1secret1secret1secret1')
-        //     ],
-        //     Jwt::HS256
-        // ];
-        // yield 'HS256' => [
-        //     [
-        //         'signer' => Jwt::HS256,
-        //         'signingKey' => 'secret1secret1secret1secret1secret1secret1',
-        //     ],
-        //     Jwt::HS256
-        // ];
-        // yield 'HS256 base64' => [
-        //     [
-        //         'signer' => Jwt::HS256,
-        //         'signingKey' => [
-        //             Jwt::KEY => 'c2VjcmV0MXNlY3JldDFzZWNyZXQxc2VjcmV0MXNlY3JldDFzZWNyZXQx',
-        //             Jwt::METHOD => JWT::METHOD_BASE64
-        //         ],
-        //     ],
-        //     Jwt::HS256
-        // ];
-        // yield 'HS384' => [
-        //     [
-        //         'signer' => Jwt::HS384,
-        //         'signingKey' => 'secret1secret1secret1secret1secret1secret1secret1',
-        //     ],
-        //     Jwt::HS384
-        // ];
-        // yield 'HS512' => [
-        //     [
-        //         'signer' => Jwt::HS512,
-        //         'signingKey' => 'secret1secret1secret1secret1secret1secret1secret1secret1secret1secret1',
-        //     ],
-        //     Jwt::HS512
-        // ];
-        // yield 'HS256 pass' => [
-        //     [
-        //         'signer' => Jwt::HS256,
-        //         'signingKey' => [
-        //             Jwt::KEY => 'secret1secret1secret1secret1secret1secret1secret1',
-        //             Jwt::PASSPHRASE => 'passphrase'
-        //         ],
-        //     ],
-        //     Jwt::HS256
-        // ];
-        // yield 'HS384 pass' => [
-        //     [
-        //         'signer' => Jwt::HS384,
-        //         'signingKey' => [
-        //             Jwt::KEY => 'secret1secret1secret1secret1secret1secret1secret1',
-        //             Jwt::PASSPHRASE => 'passphrase'
-        //         ],
-        //     ],
-        //     Jwt::HS384
-        // ];
-        // yield 'HS512 pass' => [
-        //     [
-        //         'signer' => Jwt::HS512,
-        //         'signingKey' => [
-        //             Jwt::KEY => 'secret1secret1secret1secret1secret1secret1secret1secret1secret1secret1',
-        //             Jwt::PASSPHRASE => 'passphrase'
-        //         ],
-        //     ],
-        //     Jwt::HS512
-        // ];
         yield 'RS256' => [
             [
                 'signer' => Jwt::RS256,
