@@ -13,15 +13,13 @@ use bizley\tests\stubs\TestJwtHttpBearerAuth;
 use bizley\tests\stubs\TestStub2Controller;
 use bizley\tests\stubs\TestStubController;
 use bizley\tests\stubs\UserIdentity;
-use DateTimeImmutable;
 use Lcobucci\Clock\SystemClock;
 use Lcobucci\JWT\Token;
 use Lcobucci\JWT\Validation\Constraint\IssuedBy;
 use Lcobucci\JWT\Validation\Constraint\LooseValidAt;
 use Lcobucci\JWT\Validation\NoConstraintsGiven;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use stdClass;
-use Yii;
 use yii\base\InvalidConfigException;
 use yii\log\Logger;
 use yii\rest\Controller;
@@ -29,6 +27,9 @@ use yii\web\Application;
 use yii\web\Response;
 use yii\web\UnauthorizedHttpException;
 
+#[CoversClass(JwtHttpBearerAuth::class)]
+#[CoversClass(Jwt::class)]
+#[CoversClass(JwtTools::class)]
 class BearerTest extends TestCase
 {
     protected function setUp(): void
@@ -63,13 +64,13 @@ class BearerTest extends TestCase
 
     protected function getJwt(): JwtTools
     {
-        return Yii::$app->jwt;
+        return \Yii::$app->jwt;
     }
 
     public function testEmptyPattern(): void
     {
         $this->expectException(InvalidConfigException::class);
-        $controller = Yii::$app->createController('test-stub')[0];
+        $controller = \Yii::$app->createController('test-stub')[0];
         $controller->run('test');
     }
 
@@ -79,7 +80,7 @@ class BearerTest extends TestCase
         $this->expectExceptionMessage('Your request was made with invalid or expired JSON Web Token.');
 
         /* @var $controller Controller */
-        $controller = Yii::$app->createController('test-auth')[0];
+        $controller = \Yii::$app->createController('test-auth')[0];
         $controller->run('filtered');
     }
 
@@ -88,10 +89,10 @@ class BearerTest extends TestCase
         $this->expectException(Token\InvalidTokenStructure::class);
         $this->expectExceptionMessage('The JWT string must have two dots');
 
-        Yii::$app->request->headers->set('Authorization', 'Bearer InvalidToken');
+        \Yii::$app->request->headers->set('Authorization', 'Bearer InvalidToken');
 
         /* @var $controller Controller */
-        $controller = Yii::$app->createController('test-auth')[0];
+        $controller = \Yii::$app->createController('test-auth')[0];
         $controller->run('filtered');
     }
 
@@ -100,10 +101,10 @@ class BearerTest extends TestCase
         $this->expectException(UnauthorizedHttpException::class);
         $this->expectExceptionMessage('Your request was made with invalid or expired JSON Web Token.');
 
-        Yii::$app->request->headers->set('Authorization', 'InvalidHeaderValue');
+        \Yii::$app->request->headers->set('Authorization', 'InvalidHeaderValue');
 
         /* @var $controller Controller */
-        $controller = Yii::$app->createController('test-auth')[0];
+        $controller = \Yii::$app->createController('test-auth')[0];
         $controller->run('filtered');
     }
 
@@ -112,7 +113,7 @@ class BearerTest extends TestCase
         $this->expectException(UnauthorizedHttpException::class);
         $this->expectExceptionMessage('Your request was made with invalid or expired JSON Web Token.');
 
-        $now = new DateTimeImmutable();
+        $now = new \DateTimeImmutable();
 
         $this->getJwt()->validationConstraints = [new LooseValidAt(SystemClock::fromSystemTimezone())];
 
@@ -125,16 +126,16 @@ class BearerTest extends TestCase
             )
             ->toString();
 
-        Yii::$app->request->headers->set('Authorization', "Bearer $token");
+        \Yii::$app->request->headers->set('Authorization', "Bearer $token");
 
         /* @var $controller Controller */
-        $controller = Yii::$app->createController('test-auth')[0];
+        $controller = \Yii::$app->createController('test-auth')[0];
         $controller->run('filtered');
     }
 
     public function testHttpBearerAuth(): void
     {
-        $now = new DateTimeImmutable();
+        $now = new \DateTimeImmutable();
 
         $this->getJwt()->validationConstraints = [
             new LooseValidAt(SystemClock::fromSystemTimezone()),
@@ -153,17 +154,17 @@ class BearerTest extends TestCase
 
         UserIdentity::$token = $token;
 
-        Yii::$app->request->headers->set('Authorization', "Bearer $token");
+        \Yii::$app->request->headers->set('Authorization', "Bearer $token");
 
         /** @var Controller $controller */
-        $controller = Yii::$app->createController('test-auth')[0];
+        $controller = \Yii::$app->createController('test-auth')[0];
 
         self::assertEquals('test', $controller->run('filtered'));
     }
 
     public function testHttpBearerAuthCustom(): void
     {
-        $now = new DateTimeImmutable();
+        $now = new \DateTimeImmutable();
 
         $this->getJwt()->validationConstraints = [new LooseValidAt(SystemClock::fromSystemTimezone())];
 
@@ -178,13 +179,13 @@ class BearerTest extends TestCase
 
         $JWT = $token->toString();
 
-        Yii::$app->request->headers->set('Authorization', "Bearer $JWT");
+        \Yii::$app->request->headers->set('Authorization', "Bearer $JWT");
 
         /** @var TestAuthController $controller */
-        $controller = Yii::$app->createController('test-auth')[0];
+        $controller = \Yii::$app->createController('test-auth')[0];
         $controller->filterConfig['auth'] = static function (Token $token) {
             $identity = UserIdentity::findIdentity($token->claims()->get('sub'));
-            Yii::$app->user->switchIdentity($identity);
+            \Yii::$app->user->switchIdentity($identity);
             return $identity;
         };
 
@@ -196,7 +197,7 @@ class BearerTest extends TestCase
         $this->expectException(UnauthorizedHttpException::class);
         $this->expectExceptionMessage('Your request was made with invalid or expired JSON Web Token.');
 
-        $now = new DateTimeImmutable();
+        $now = new \DateTimeImmutable();
 
         $this->getJwt()->validationConstraints = [new LooseValidAt(SystemClock::fromSystemTimezone())];
 
@@ -211,10 +212,10 @@ class BearerTest extends TestCase
 
         $JWT = $token->toString();
 
-        Yii::$app->request->headers->set('Authorization', "Bearer $JWT");
+        \Yii::$app->request->headers->set('Authorization', "Bearer $JWT");
 
         /** @var TestAuthController $controller */
-        $controller = Yii::$app->createController('test-auth')[0];
+        $controller = \Yii::$app->createController('test-auth')[0];
         $controller->filterConfig['auth'] = static function (Token $token) {
             return null;
         };
@@ -226,7 +227,7 @@ class BearerTest extends TestCase
         $this->expectException(UnauthorizedHttpException::class);
         $this->expectExceptionMessage('Your request was made with invalid or expired JSON Web Token.');
 
-        $now = new DateTimeImmutable();
+        $now = new \DateTimeImmutable();
 
         $this->getJwt()->validationConstraints = [new LooseValidAt(SystemClock::fromSystemTimezone())];
 
@@ -241,12 +242,12 @@ class BearerTest extends TestCase
 
         $JWT = $token->toString();
 
-        Yii::$app->request->headers->set('Authorization', "Bearer $JWT");
+        \Yii::$app->request->headers->set('Authorization', "Bearer $JWT");
 
         /** @var TestAuthController $controller */
-        $controller = Yii::$app->createController('test-auth')[0];
+        $controller = \Yii::$app->createController('test-auth')[0];
         $controller->filterConfig['auth'] = static function (Token $token) {
-            return new stdClass();
+            return new \stdClass();
         };
         $controller->run('filtered');
     }
@@ -279,12 +280,12 @@ class BearerTest extends TestCase
 
         $logger = $this->createMock(Logger::class);
         $logger->expects(self::exactly(2))->method('log')->willReturnCallback(
-            new ConsecutiveCalls([
+            ConsecutiveCalls::withArgs(
                 ['Route to run: test-stub2/test', 8, 'yii\base\Controller::runAction'],
                 ['No constraint given.', 2, 'JwtHttpBearerAuth'],
-            ], ConsecutiveCalls::NEVER)
+            )
         );
-        Yii::setLogger($logger);
+        \Yii::setLogger($logger);
 
         $token = $this->getJwt()->getBuilder()
             ->getToken(
@@ -293,10 +294,10 @@ class BearerTest extends TestCase
             )
             ->toString();
 
-        Yii::$app->request->headers->set('Authorization', "Bearer $token");
+        \Yii::$app->request->headers->set('Authorization', "Bearer $token");
 
         /* @var $controller Controller */
-        $controller = Yii::$app->createController('test-stub2')[0];
+        $controller = \Yii::$app->createController('test-stub2')[0];
         $controller->run('test');
         self::assertSame(14, $controller->flag);
     }
@@ -307,10 +308,10 @@ class BearerTest extends TestCase
         $this->expectExceptionMessage('Your request was made with invalid or expired JSON Web Token.');
         // instead of 'The JWT string must have two dots'
 
-        Yii::$app->request->headers->set('Authorization', 'Bearer InvalidToken');
+        \Yii::$app->request->headers->set('Authorization', 'Bearer InvalidToken');
 
         /* @var $controller Controller */
-        $controller = Yii::$app->createController('test-auth')[0];
+        $controller = \Yii::$app->createController('test-auth')[0];
         $controller->filterConfig['throwException'] = false;
         $controller->run('filtered');
     }

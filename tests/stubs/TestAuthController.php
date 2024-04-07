@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace bizley\tests\stubs;
 
 use bizley\jwt\JwtHttpBearerAuth;
-use Yii;
 use yii\rest\Controller;
 
 class TestAuthController extends Controller
@@ -24,6 +23,6 @@ class TestAuthController extends Controller
 
     public function actionFiltered(): ?string
     {
-        return Yii::$app->user->id;
+        return \Yii::$app->user->id;
     }
 }
