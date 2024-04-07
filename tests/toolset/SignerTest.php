@@ -10,10 +10,13 @@ use Lcobucci\JWT\Signer\Hmac\Sha256;
 use Lcobucci\JWT\Signer\InvalidKeyProvided;
 use Lcobucci\JWT\Signer\Key\InMemory;
 use Lcobucci\JWT\Validation\Constraint\SignedWith;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use Yii;
 use yii\base\InvalidConfigException;
 
+#[CoversClass(Jwt::class)]
+#[CoversClass(JwtTools::class)]
 class SignerTest extends TestCase
 {
     /**
@@ -22,7 +25,7 @@ class SignerTest extends TestCase
     public function getJwt(array $config = []): JwtTools
     {
         /** @var JwtTools $jwt */
-        $jwt = Yii::createObject(
+        $jwt = \Yii::createObject(
             array_merge(
                 ['class' => JwtTools::class],
                 $config
@@ -153,10 +156,7 @@ class SignerTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider providerForSigners
-     * @throws InvalidConfigException
-     */
+    #[DataProvider('providerForSigners')]
     public function testParseTokenWithSignature(
         string|object $signer,
         string|array|object $signingKey,

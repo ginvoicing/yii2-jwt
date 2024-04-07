@@ -5,14 +5,18 @@ declare(strict_types=1);
 namespace bizley\tests\standard;
 
 use bizley\jwt\Jwt;
+use bizley\jwt\JwtTools;
 use Lcobucci\JWT\Signer\Hmac\Sha256;
 use Lcobucci\JWT\Signer\InvalidKeyProvided;
 use Lcobucci\JWT\Signer\Key\InMemory;
 use Lcobucci\JWT\Validation\Constraint\SignedWith;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use Yii;
 use yii\base\InvalidConfigException;
 
+#[CoversClass(Jwt::class)]
+#[CoversClass(JwtTools::class)]
 class SignerTest extends TestCase
 {
     /**
@@ -21,8 +25,8 @@ class SignerTest extends TestCase
     public function getJwt(array $config = []): Jwt
     {
         /** @var Jwt $jwt */
-        $jwt = Yii::createObject(
-            array_merge(
+        $jwt = \Yii::createObject(
+            \array_merge(
                 ['class' => Jwt::class],
                 $config
             )
@@ -177,10 +181,7 @@ class SignerTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider providerForSigners
-     * @throws InvalidConfigException
-     */
+    #[DataProvider('providerForSigners')]
     public function testParseTokenWithSignature(array $config, string $algorithm): void
     {
         $jwt = $this->getJwt($config);

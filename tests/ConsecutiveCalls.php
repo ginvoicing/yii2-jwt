@@ -5,35 +5,51 @@ declare(strict_types=1);
 namespace bizley\tests;
 
 use PHPUnit\Framework\Assert;
+use PHPUnit\Framework\Constraint\Constraint;
 
 class ConsecutiveCalls extends Assert
 {
-    public const NEVER = 'never';
-    public const RETURN = 'return';
+    /**
+     * @var array<mixed[]>
+     */
+    private array $data = [];
+    private int $internalCounter = -1;
 
     /**
-     * @param array<mixed[]> $data
+     * @param mixed[] ...$args
      */
-    public function __construct(private array $data, private readonly string $mode = self::RETURN)
+    private function __construct(array ...$args)
     {
+        foreach ($args as $arg) {
+            if (!\is_array($arg)) {
+                throw new \InvalidArgumentException('All arguments must be arrays');
+            }
 
+            $this->data[] = $arg;
+        }
     }
 
     /**
-     * @param mixed ...$args
-     * @return mixed|void|null
+     * @param mixed[] ...$arguments
      */
-    public function __invoke(...$args)
+    public static function withArgs(array ...$arguments): self
     {
-        $testData = \array_shift($this->data);
+        return new self(...$arguments);
+    }
 
-        if ($this->mode === self::NEVER) {
-            self::assertSame($testData, $args);
-        } else {
-            $returned = $testData ? \array_pop($testData) : null;
-            self::assertSame($testData, $args);
+    public function __invoke(mixed ...$args): void
+    {
+        $testData = $this->data[++$this->internalCounter] ?? null;
+        if ($testData === null) {
+            $testData = $this->data[$this->internalCounter % \count($this->data)];
+        }
 
-            return $returned;
+        foreach ($testData as $key => $value) {
+            if ($value instanceof Constraint) {
+                $value->evaluate($args[$key]);
+            } else {
+                self::assertEquals($value, $args[$key]);
+            }
         }
     }
 }
