@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace bizley\tests\standard;
 
 use bizley\jwt\Jwt;
+use bizley\jwt\JwtTools;
 use Lcobucci\JWT\Signer\Hmac\Sha256;
 use Lcobucci\JWT\Signer\InvalidKeyProvided;
 use Lcobucci\JWT\Signer\Key\InMemory;
@@ -15,6 +16,7 @@ use PHPUnit\Framework\TestCase;
 use yii\base\InvalidConfigException;
 
 #[CoversClass(Jwt::class)]
+#[CoversClass(JwtTools::class)]
 class SignerTest extends TestCase
 {
     /**
