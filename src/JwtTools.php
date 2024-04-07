@@ -16,7 +16,6 @@ use Lcobucci\JWT\Signer;
 use Lcobucci\JWT\Token;
 use Lcobucci\JWT\Validation;
 use Lcobucci\JWT\Validator;
-use Yii;
 use yii\base\Component;
 use yii\base\InvalidConfigException;
 use yii\di\Instance;
@@ -86,10 +85,10 @@ class JwtTools extends Component
         $keys = \array_keys($config);
         if (\is_string(\reset($keys))) {
             // most probably Yii-style config
-            return Yii::createObject($config);
+            return \Yii::createObject($config);
         }
 
-        return Yii::createObject(...$config);
+        return \Yii::createObject(...$config);
     }
 
     /**
@@ -176,7 +175,7 @@ class JwtTools extends Component
             }
             if (\str_starts_with($key, '@')) {
                 $keyConfig = [
-                    Jwt::KEY => Yii::getAlias($key),
+                    Jwt::KEY => \Yii::getAlias($key),
                     Jwt::METHOD => Jwt::METHOD_FILE,
                 ];
             } elseif (\str_starts_with($key, 'file://')) {
@@ -236,7 +235,7 @@ class JwtTools extends Component
         }
 
         if (\in_array($signer, [Jwt::ES256, Jwt::ES384, Jwt::ES512], true)) {
-            Yii::$container->set(Signer\Ecdsa\SignatureConverter::class, Signer\Ecdsa\MultibyteStringConverter::class);
+            \Yii::$container->set(Signer\Ecdsa\SignatureConverter::class, Signer\Ecdsa\MultibyteStringConverter::class);
         }
 
         /** @var Signer $signerInstance */

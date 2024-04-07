@@ -7,8 +7,6 @@ namespace bizley\jwt;
 use Lcobucci\JWT\Encoding\CannotDecodeContent;
 use Lcobucci\JWT\Token;
 use Lcobucci\JWT\Validation;
-use Throwable;
-use Yii;
 use yii\base\InvalidConfigException;
 use yii\di\Instance;
 use yii\filters\auth\HttpBearerAuth;
@@ -17,9 +15,6 @@ use yii\web\Request;
 use yii\web\Response;
 use yii\web\UnauthorizedHttpException;
 use yii\web\User;
-
-use function call_user_func;
-use function get_class;
 
 /**
  * JwtHttpBearerAuth is an action filter that supports the authentication method based on HTTP Bearer JSON Web Token.
@@ -126,8 +121,8 @@ class JwtHttpBearerAuth extends HttpBearerAuth
             if (!empty($data)) {
                 $token = $this->processToken($data);
             }
-        } catch (Throwable $exception) {
-            Yii::warning($exception->getMessage(), 'JwtHttpBearerAuth');
+        } catch (\Throwable $exception) {
+            \Yii::warning($exception->getMessage(), 'JwtHttpBearerAuth');
             if (!$this->throwException) {
                 return null;
             }
@@ -135,10 +130,10 @@ class JwtHttpBearerAuth extends HttpBearerAuth
         }
 
         if ($token !== null) {
-            if (is_callable($this->auth, true)) {
-                $identity = call_user_func($this->auth, $token);
+            if (\is_callable($this->auth, true)) {
+                $identity = \call_user_func($this->auth, $token);
             } else {
-                $identity = $user->loginByAccessToken($token->toString(), get_class($this));
+                $identity = $user->loginByAccessToken($token->toString(), \get_class($this));
             }
         }
 

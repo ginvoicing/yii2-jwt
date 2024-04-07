@@ -6,25 +6,25 @@ namespace bizley\tests\standard;
 
 use bizley\jwt\Jwt;
 use bizley\tests\stubs\YiiConstraint;
-use Closure;
 use Lcobucci\JWT\Token;
 use Lcobucci\JWT\Validation\Constraint;
 use Lcobucci\JWT\Validation\Constraint\IdentifiedBy;
 use Lcobucci\JWT\Validation\Constraint\RelatedTo;
 use Lcobucci\JWT\Validation\NoConstraintsGiven;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Yii;
 use yii\base\InvalidConfigException;
 
+#[CoversClass(Jwt::class)]
 class ConstraintsConfigTest extends TestCase
 {
     /**
-     * @param array|Closure|null $validationConstraints
+     * @param array|\Closure|null $validationConstraints
      * @throws InvalidConfigException
      */
     private function getJwt($validationConstraints): Jwt
     {
-        return Yii::createObject(
+        return \Yii::createObject(
             [
                 'class' => Jwt::class,
                 'signer' => Jwt::HS256,

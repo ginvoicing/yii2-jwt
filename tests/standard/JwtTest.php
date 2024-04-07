@@ -11,11 +11,13 @@ use Lcobucci\JWT\Encoder;
 use Lcobucci\JWT\Signer;
 use Lcobucci\JWT\Validation\Constraint\IdentifiedBy;
 use Lcobucci\JWT\Validation\RequiredConstraintsViolated;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
-use stdClass;
-use Yii;
 use yii\base\InvalidConfigException;
 
+#[CoversClass(Jwt::class)]
 class JwtTest extends TestCase
 {
     private function getJwt(): Jwt
@@ -89,9 +91,7 @@ class JwtTest extends TestCase
         self::assertFalse($jwt->validate($token));
     }
 
-    /**
-     * @doesNotPerformAssertions
-     */
+    #[DoesNotPerformAssertions]
     public function testAssertSuccess(): void
     {
         $jwt = $this->getJwt();
@@ -101,9 +101,7 @@ class JwtTest extends TestCase
         $jwt->assert($token);
     }
 
-    /**
-     * @doesNotPerformAssertions
-     */
+    #[DoesNotPerformAssertions]
     public function testAssertSuccessWithStringToken(): void
     {
         $jwt = $this->getJwt();
@@ -128,20 +126,17 @@ class JwtTest extends TestCase
 
     public static function providerForInvalidKey(): iterable
     {
-        yield 'object' => [new stdClass(), 'Invalid key configuration!'];
+        yield 'object' => [new \stdClass(), 'Invalid key configuration!'];
         yield 'int value' => [[Jwt::KEY => 1], 'Invalid key value!'];
         yield 'array value' => [[Jwt::KEY => []], 'Invalid key value!'];
-        yield 'object value' => [[Jwt::KEY => new stdClass()], 'Invalid key value!'];
+        yield 'object value' => [[Jwt::KEY => new \stdClass()], 'Invalid key value!'];
         yield 'method' => [[Jwt::KEY => 'k', Jwt::METHOD => ''], 'Invalid key method!'];
         yield 'int pass' => [[Jwt::KEY => 'k', Jwt::PASSPHRASE => 1], 'Invalid key passphrase!'];
         yield 'array pass' => [[Jwt::KEY => 'k', Jwt::PASSPHRASE => []], 'Invalid key passphrase!'];
-        yield 'object pass' => [[Jwt::KEY => 'k', Jwt::PASSPHRASE => new stdClass()], 'Invalid key passphrase!'];
+        yield 'object pass' => [[Jwt::KEY => 'k', Jwt::PASSPHRASE => new \stdClass()], 'Invalid key passphrase!'];
     }
 
-    /**
-     * @dataProvider providerForInvalidKey
-     * @param mixed $key
-     */
+    #[DataProvider('providerForInvalidKey')]
     public function testInvalidKey($key, string $message): void
     {
         $this->expectExceptionMessage($message);
@@ -203,10 +198,7 @@ class JwtTest extends TestCase
         yield 'file://' => ['_file://' . __DIR__ . '/data/rs256.key'];
     }
 
-    /**
-     * @dataProvider providerForWrongKeyNames
-     * @throws InvalidConfigException
-     */
+    #[DataProvider('providerForWrongKeyNames')]
     public function testWrongFileKeyNameStartingCharacters(string $key): void
     {
         $jwt = new Jwt(
@@ -225,10 +217,7 @@ class JwtTest extends TestCase
         yield 'file://' => ['file://' . __DIR__ . '/../data/rs256.key'];
     }
 
-    /**
-     * @dataProvider providerForRightKeyNames
-     * @throws InvalidConfigException
-     */
+    #[DataProvider('providerForRightKeyNames')]
     public function testRightFileKeyNameStartingCharacters(string $key): void
     {
         $jwt = new Jwt(
@@ -302,15 +291,13 @@ cOJPB1eW2ny/UXZfeLwheuQfkr5grlke4Z0JiNd86CJ9NOnNIbMDl2PSj7cjMDQ=
         yield Jwt::ES512 => [Jwt::ES512];
     }
 
-    /**
-     * @dataProvider providerForSignerSignatureConverter
-     */
+    #[DataProvider('providerForSignerSignatureConverter')]
     public function testPrepareSignatureConverter(string $signerId): void
     {
         new Jwt(['signer' => $signerId, 'signingKey' => ' ', 'verifyingKey' => ' ']);
         $this->assertInstanceOf(
             Signer\Ecdsa\MultibyteStringConverter::class,
-            Yii::$container->get(Signer\Ecdsa\SignatureConverter::class)
+            \Yii::$container->get(Signer\Ecdsa\SignatureConverter::class)
         );
     }
 }
