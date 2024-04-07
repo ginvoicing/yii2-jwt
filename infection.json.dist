@@ -15,7 +15,7 @@
         "MethodCallRemoval": {
             "ignore": [
                 "bizley\\jwt\\Jwt::init::124",
-                "bizley\\jwt\\JwtHttpBearerAuth::init::77"
+                "bizley\\jwt\\JwtHttpBearerAuth::init::72"
             ]
         }
     },
