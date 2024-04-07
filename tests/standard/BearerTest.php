@@ -6,6 +6,7 @@ namespace bizley\tests\standard;
 
 use bizley\jwt\Jwt;
 use bizley\jwt\JwtHttpBearerAuth;
+use bizley\jwt\JwtTools;
 use bizley\tests\ConsecutiveCalls;
 use bizley\tests\stubs\TestAuthController;
 use bizley\tests\stubs\TestJwtHttpBearerAuth;
@@ -28,6 +29,7 @@ use yii\web\UnauthorizedHttpException;
 
 #[CoversClass(JwtHttpBearerAuth::class)]
 #[CoversClass(Jwt::class)]
+#[CoversClass(JwtTools::class)]
 class BearerTest extends TestCase
 {
     protected function setUp(): void
