@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace bizley\tests\standard;
 
 use bizley\jwt\Jwt;
+use bizley\jwt\JwtTools;
 use bizley\tests\stubs\YiiConstraint;
 use Lcobucci\JWT\Token;
 use Lcobucci\JWT\Validation\Constraint;
@@ -16,6 +17,7 @@ use PHPUnit\Framework\TestCase;
 use yii\base\InvalidConfigException;
 
 #[CoversClass(Jwt::class)]
+#[CoversClass(JwtTools::class)]
 class ConstraintsConfigTest extends TestCase
 {
     /**

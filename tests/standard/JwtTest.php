@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace bizley\tests\standard;
 
 use bizley\jwt\Jwt;
+use bizley\jwt\JwtTools;
 use bizley\tests\stubs\JwtStub;
 use Lcobucci\JWT\Decoder;
 use Lcobucci\JWT\Encoder;
@@ -18,6 +19,7 @@ use PHPUnit\Framework\TestCase;
 use yii\base\InvalidConfigException;
 
 #[CoversClass(Jwt::class)]
+#[CoversClass(JwtTools::class)]
 class JwtTest extends TestCase
 {
     private function getJwt(): Jwt
