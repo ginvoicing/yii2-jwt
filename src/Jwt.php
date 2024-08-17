@@ -4,14 +4,7 @@ declare(strict_types=1);
 
 namespace bizley\jwt;
 
-use Lcobucci\JWT\Builder;
-use Lcobucci\JWT\ClaimsFormatter;
-use Lcobucci\JWT\Configuration;
-use Lcobucci\JWT\Parser;
-use Lcobucci\JWT\Signer;
-use Lcobucci\JWT\Token;
-use Lcobucci\JWT\Validation;
-use Lcobucci\JWT\Validator;
+use Lcobucci\JWT as BaseJwt;
 use yii\base\InvalidConfigException;
 
 /**
@@ -21,7 +14,7 @@ use yii\base\InvalidConfigException;
  * This implementation is based on the \Lcobucci\JWT\Configuration setup which requires both signing and verifying keys
  * to be defined (the standard way). If you need only some JWT tools, please use \bizley\jwt\JwtTools directly.
  *
- * @author Paweł Bizley Brzozowski <pawel@positive.codes> since 2.0 (fork)
+ * @author Paweł Bizley Brzozowski <pawel.bizley@gmail.com> since 2.0 (fork)
  * @author Dmitriy Demin <sizemail@gmail.com> original package
  */
 class Jwt extends JwtTools
@@ -50,7 +43,7 @@ class Jwt extends JwtTools
     public const PASSPHRASE = 'passphrase';
 
     /**
-     * @var string|array<string, string>|Signer\Key Signing key definition.
+     * @var string|array<string, string>|BaseJwt\Signer\Key Signing key definition.
      * This can be a simple string, an instance of Key, or a configuration array.
      * The configuration takes the following array keys:
      * - 'key'        => Key's value or path to the key file.
@@ -77,7 +70,7 @@ class Jwt extends JwtTools
     public $signingKey = '';
 
     /**
-     * @var string|array<string, string>|Signer\Key Verifying key definition.
+     * @var string|array<string, string>|BaseJwt\Signer\Key Verifying key definition.
      * $signingKey documentation you can find above applies here as well.
      * Symmetric algorithms (like HMAC) use a single key to sign and verify tokens so this property is ignored in that
      * case. Asymmetric algorithms (like RSA and ECDSA) use a private key to sign and a public key to verify.
@@ -86,7 +79,7 @@ class Jwt extends JwtTools
     public $verifyingKey = '';
 
     /**
-     * @var string|Signer Signer ID or Signer instance to be used for signing/verifying.
+     * @var string|BaseJwt\Signer Signer ID or Signer instance to be used for signing/verifying.
      * See $signers for available values. Since 4.0.0 it cannot be empty anymore.
      * @since 3.0.0
      */
@@ -114,7 +107,7 @@ class Jwt extends JwtTools
         ],
     ];
 
-    private ?Configuration $configuration = null;
+    private ?BaseJwt\Configuration $configuration = null;
 
     /**
      * @throws InvalidConfigException
@@ -124,18 +117,18 @@ class Jwt extends JwtTools
         parent::init();
 
         $signerId = $this->signer;
-        if ($this->signer instanceof Signer) {
+        if ($this->signer instanceof BaseJwt\Signer) {
             $signerId = $this->signer->algorithmId();
         }
         if (\in_array($signerId, $this->algorithmTypes[self::SYMMETRIC], true)) {
-            $this->configuration = Configuration::forSymmetricSigner(
+            $this->configuration = BaseJwt\Configuration::forSymmetricSigner(
                 $this->buildSigner($this->signer),
                 $this->buildKey($this->signingKey),
                 $this->prepareEncoder(),
                 $this->prepareDecoder()
             );
         } elseif (\in_array($signerId, $this->algorithmTypes[self::ASYMMETRIC], true)) {
-            $this->configuration = Configuration::forAsymmetricSigner(
+            $this->configuration = BaseJwt\Configuration::forAsymmetricSigner(
                 $this->buildSigner($this->signer),
                 $this->buildKey($this->signingKey),
                 $this->buildKey($this->verifyingKey),
@@ -151,7 +144,7 @@ class Jwt extends JwtTools
      * @throws InvalidConfigException
      * @since 3.0.0
      */
-    public function getConfiguration(): Configuration
+    public function getConfiguration(): BaseJwt\Configuration
     {
         if ($this->configuration === null) {
             throw new InvalidConfigException('Configuration has not been set up. Did you call init()?');
@@ -165,7 +158,7 @@ class Jwt extends JwtTools
      * @see https://lcobucci-jwt.readthedocs.io/en/latest/issuing-tokens/ for details of using the builder.
      * @throws InvalidConfigException
      */
-    public function getBuilder(?ClaimsFormatter $claimFormatter = null): Builder
+    public function getBuilder(?BaseJwt\ClaimsFormatter $claimFormatter = null): BaseJwt\Builder
     {
         return $this->getConfiguration()->builder($claimFormatter);
     }
@@ -174,7 +167,7 @@ class Jwt extends JwtTools
      * @see https://lcobucci-jwt.readthedocs.io/en/latest/parsing-tokens/ for details of using the parser.
      * @throws InvalidConfigException
      */
-    public function getParser(): Parser
+    public function getParser(): BaseJwt\Parser
     {
         return $this->getConfiguration()->parser();
     }
@@ -183,7 +176,7 @@ class Jwt extends JwtTools
      * @see https://lcobucci-jwt.readthedocs.io/en/stable/validating-tokens/ for details of using the validator.
      * @throws InvalidConfigException
      */
-    public function getValidator(): Validator
+    public function getValidator(): BaseJwt\Validator
     {
         return $this->getConfiguration()->validator();
     }
@@ -191,43 +184,43 @@ class Jwt extends JwtTools
     /**
      * This method goes through every single constraint in the set, groups all the violations, and throws an exception
      * with the grouped violations.
-     * @param non-empty-string|Token $jwt JWT string or instance of Token
-     * @throws Validation\RequiredConstraintsViolated When constraint is violated
-     * @throws Validation\NoConstraintsGiven When no constraints are provided
+     * @param non-empty-string|BaseJwt\Token $jwt JWT string or instance of Token
+     * @throws BaseJwt\Validation\RequiredConstraintsViolated When constraint is violated
+     * @throws BaseJwt\Validation\NoConstraintsGiven When no constraints are provided
      * @throws InvalidConfigException
      * @since 3.0.0
      */
     public function assert($jwt): void
     {
         $configuration = $this->getConfiguration();
-        $token = $jwt instanceof Token ? $jwt : $this->parse($jwt);
+        $token = $jwt instanceof BaseJwt\Token ? $jwt : $this->parse($jwt);
         $constraints = $this->prepareValidationConstraints();
         $configuration->validator()->assert($token, ...$constraints);
     }
 
     /**
      * This method return false on first constraint violation
-     * @param non-empty-string|Token $jwt JWT string or instance of Token
+     * @param non-empty-string|BaseJwt\Token $jwt JWT string or instance of Token
      * @throws InvalidConfigException
      * @since 3.0.0
      */
     public function validate($jwt): bool
     {
         $configuration = $this->getConfiguration();
-        $token = $jwt instanceof Token ? $jwt : $this->parse($jwt);
+        $token = $jwt instanceof BaseJwt\Token ? $jwt : $this->parse($jwt);
         $constraints = $this->prepareValidationConstraints();
 
         return $configuration->validator()->validate($token, ...$constraints);
     }
 
     /**
-     * @return Validation\Constraint[]
+     * @return BaseJwt\Validation\Constraint[]
      * @throws InvalidConfigException
      */
     protected function prepareValidationConstraints(): array
     {
         $configuredConstraints = $this->getConfiguration()->validationConstraints();
-        if (\count($configuredConstraints)) {
+        if (!empty($configuredConstraints)) {
             return $configuredConstraints;
         }
 

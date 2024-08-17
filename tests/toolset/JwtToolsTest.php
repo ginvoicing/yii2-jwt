@@ -6,19 +6,14 @@ namespace bizley\tests\toolset;
 
 use bizley\jwt\Jwt;
 use bizley\jwt\JwtTools;
-use Lcobucci\JWT\ClaimsFormatter;
-use Lcobucci\JWT\Decoder;
-use Lcobucci\JWT\Encoder;
-use Lcobucci\JWT\Signer;
+use Lcobucci\JWT as BaseJwt;
 use Lcobucci\JWT\Validation\Constraint\IdentifiedBy;
 use Lcobucci\JWT\Validation\RequiredConstraintsViolated;
-use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\DataProvider;
-use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
+use PHPUnit\Framework\Attributes;
 use PHPUnit\Framework\TestCase;
 
-#[CoversClass(Jwt::class)]
-#[CoversClass(JwtTools::class)]
+#[Attributes\CoversClass(Jwt::class)]
+#[Attributes\CoversClass(JwtTools::class)]
 class JwtToolsTest extends TestCase
 {
     private function getJwt(): JwtTools
@@ -26,27 +21,29 @@ class JwtToolsTest extends TestCase
         return new JwtTools();
     }
 
-    public function testAvailableSigners(): void
+    #[Attributes\Test]
+    public function availableSigners(): void
     {
         self::assertSame(
             [
-                Jwt::HS256 => [Signer\Hmac\Sha256::class],
-                Jwt::HS384 => [Signer\Hmac\Sha384::class],
-                Jwt::HS512 => [Signer\Hmac\Sha512::class],
-                Jwt::RS256 => [Signer\Rsa\Sha256::class],
-                Jwt::RS384 => [Signer\Rsa\Sha384::class],
-                Jwt::RS512 => [Signer\Rsa\Sha512::class],
-                Jwt::ES256 => [Signer\Ecdsa\Sha256::class],
-                Jwt::ES384 => [Signer\Ecdsa\Sha384::class],
-                Jwt::ES512 => [Signer\Ecdsa\Sha512::class],
-                Jwt::EDDSA => [Signer\Eddsa::class],
-                Jwt::BLAKE2B => [Signer\Blake2b::class],
+                Jwt::HS256 => [BaseJwt\Signer\Hmac\Sha256::class],
+                Jwt::HS384 => [BaseJwt\Signer\Hmac\Sha384::class],
+                Jwt::HS512 => [BaseJwt\Signer\Hmac\Sha512::class],
+                Jwt::RS256 => [BaseJwt\Signer\Rsa\Sha256::class],
+                Jwt::RS384 => [BaseJwt\Signer\Rsa\Sha384::class],
+                Jwt::RS512 => [BaseJwt\Signer\Rsa\Sha512::class],
+                Jwt::ES256 => [BaseJwt\Signer\Ecdsa\Sha256::class],
+                Jwt::ES384 => [BaseJwt\Signer\Ecdsa\Sha384::class],
+                Jwt::ES512 => [BaseJwt\Signer\Ecdsa\Sha512::class],
+                Jwt::EDDSA => [BaseJwt\Signer\Eddsa::class],
+                Jwt::BLAKE2B => [BaseJwt\Signer\Blake2b::class],
             ],
             $this->getJwt()->signers,
         );
     }
 
-    public function testValidateSuccess(): void
+    #[Attributes\Test]
+    public function validateSuccess(): void
     {
         $jwt = $this->getJwt();
         $jwt->validationConstraints = [new IdentifiedBy('abc')];
@@ -57,7 +54,8 @@ class JwtToolsTest extends TestCase
         self::assertTrue($jwt->validate($token));
     }
 
-    public function testValidateSuccessWithStringToken(): void
+    #[Attributes\Test]
+    public function validateSuccessWithStringToken(): void
     {
         $jwt = $this->getJwt();
         $jwt->validationConstraints = [new IdentifiedBy('abc')];
@@ -68,7 +66,8 @@ class JwtToolsTest extends TestCase
         self::assertTrue($jwt->validate($token));
     }
 
-    public function testValidateFail(): void
+    #[Attributes\Test]
+    public function validateFail(): void
     {
         $jwt = $this->getJwt();
         $jwt->validationConstraints = [new IdentifiedBy('abc')];
@@ -79,8 +78,9 @@ class JwtToolsTest extends TestCase
         self::assertFalse($jwt->validate($token));
     }
 
-    #[DoesNotPerformAssertions]
-    public function testAssertSuccess(): void
+    #[Attributes\DoesNotPerformAssertions]
+    #[Attributes\Test]
+    public function assertSuccess(): void
     {
         $jwt = $this->getJwt();
         $jwt->validationConstraints = [new IdentifiedBy('abc')];
@@ -91,8 +91,9 @@ class JwtToolsTest extends TestCase
         $jwt->assert($token);
     }
 
-    #[DoesNotPerformAssertions]
-    public function testAssertSuccessWithStringToken(): void
+    #[Attributes\DoesNotPerformAssertions]
+    #[Attributes\Test]
+    public function assertSuccessWithStringToken(): void
     {
         $jwt = $this->getJwt();
         $jwt->validationConstraints = [new IdentifiedBy('abc')];
@@ -103,7 +104,8 @@ class JwtToolsTest extends TestCase
         $jwt->assert($token);
     }
 
-    public function testAssertFail(): void
+    #[Attributes\Test]
+    public function assertFail(): void
     {
         $jwt = $this->getJwt();
         $jwt->validationConstraints = [new IdentifiedBy('abc')];
@@ -125,19 +127,25 @@ class JwtToolsTest extends TestCase
         yield 'int pass' => [[Jwt::KEY => 'k', Jwt::PASSPHRASE => 1], 'Invalid key passphrase!'];
         yield 'array pass' => [[Jwt::KEY => 'k', Jwt::PASSPHRASE => []], 'Invalid key passphrase!'];
         yield 'object pass' => [[Jwt::KEY => 'k', Jwt::PASSPHRASE => new \stdClass()], 'Invalid key passphrase!'];
+        yield 'empty string' => [[Jwt::KEY => ''], 'Invalid key value!'];
+        yield '@' => [[Jwt::KEY => '@'], 'Invalid path alias: @'];
+        yield 'empty alias' => [[Jwt::KEY => '@emptyString'], 'Yii alias was resolved as an invalid key value!'];
     }
 
-    #[DataProvider('providerForInvalidKey')]
-    public function testInvalidKey($key, string $message): void
+    #[Attributes\DataProvider('providerForInvalidKey')]
+    #[Attributes\Test]
+    public function invalidKey($key, string $message): void
     {
         $this->expectExceptionMessage($message);
+        \Yii::setAlias('@emptyString', '');
         (new JwtTools())->buildKey($key);
     }
 
-    public function testCustomEncoder(): void
+    #[Attributes\Test]
+    public function customEncoder(): void
     {
-        $encoder = $this->createMock(Encoder::class);
-        $encoder->expects(self::exactly(3))->method('base64UrlEncode');
+        $encoder = $this->createMock(BaseJwt\Encoder::class);
+        $encoder->expects($this->exactly(3))->method('base64UrlEncode');
 
         $jwt = new JwtTools(['encoder' => $encoder]);
         $jwt->getBuilder()->getToken(
@@ -146,11 +154,12 @@ class JwtToolsTest extends TestCase
         );
     }
 
-    public function testCustomDecoder(): void
+    #[Attributes\Test]
+    public function customDecoder(): void
     {
-        $decoder = $this->createMock(Decoder::class);
+        $decoder = $this->createMock(BaseJwt\Decoder::class);
         $decoder->method('jsonDecode')->willReturn([]);
-        $decoder->expects(self::exactly(3))->method('base64UrlDecode');
+        $decoder->expects($this->exactly(3))->method('base64UrlDecode');
 
         $jwt = new Jwt(
             [
@@ -167,7 +176,8 @@ class JwtToolsTest extends TestCase
         );
     }
 
-    public function testMethodsVisibility(): void
+    #[Attributes\Test]
+    public function methodsVisibility(): void
     {
         $jwt = $this->getJwt();
         self::assertNotEmpty($jwt->getBuilder());
@@ -180,8 +190,9 @@ class JwtToolsTest extends TestCase
         yield 'file://' => ['_file://' . __DIR__ . '/data/rs256.key'];
     }
 
-    #[DataProvider('providerForWrongKeyNames')]
-    public function testWrongFileKeyNameStartingCharacters(string $key): void
+    #[Attributes\DataProvider('providerForWrongKeyNames')]
+    #[Attributes\Test]
+    public function wrongFileKeyNameStartingCharacters(string $key): void
     {
         $jwt = new Jwt(
             [
@@ -196,11 +207,16 @@ class JwtToolsTest extends TestCase
     public static function providerForRightKeyNames(): iterable
     {
         yield '@' => ['@bizley/tests/data/rs256.key'];
+        yield '@ in array' => [[
+            Jwt::KEY => '@bizley/tests/data/rs256.key',
+            Jwt::METHOD => Jwt::METHOD_FILE,
+        ]];
         yield 'file://' => ['file://' . __DIR__ . '/../data/rs256.key'];
     }
 
-    #[DataProvider('providerForRightKeyNames')]
-    public function testRightFileKeyNameStartingCharacters(string $key): void
+    #[Attributes\DataProvider('providerForRightKeyNames')]
+    #[Attributes\Test]
+    public function rightFileKeyNameStartingCharacters(string|array $key): void
     {
         $jwt = new Jwt(
             [
@@ -273,20 +289,22 @@ cOJPB1eW2ny/UXZfeLwheuQfkr5grlke4Z0JiNd86CJ9NOnNIbMDl2PSj7cjMDQ=
         yield Jwt::ES512 => [Jwt::ES512];
     }
 
-    #[DataProvider('providerForSignerSignatureConverter')]
-    public function testPrepareSignatureConverter(string $signerId): void
+    #[Attributes\DataProvider('providerForSignerSignatureConverter')]
+    #[Attributes\Test]
+    public function prepareSignatureConverter(string $signerId): void
     {
-        \Yii::$container->clear(Signer\Ecdsa\SignatureConverter::class);
+        \Yii::$container->clear(BaseJwt\Signer\Ecdsa\SignatureConverter::class);
         new Jwt(['signer' => $signerId, 'signingKey' => ' ', 'verifyingKey' => ' ']);
         $this->assertInstanceOf(
-            Signer\Ecdsa\MultibyteStringConverter::class,
-            \Yii::$container->get(Signer\Ecdsa\SignatureConverter::class)
+            BaseJwt\Signer\Ecdsa\MultibyteStringConverter::class,
+            \Yii::$container->get(BaseJwt\Signer\Ecdsa\SignatureConverter::class)
         );
     }
 
-    public function testBuilderWithCustomClaimsFormatter(): void
+    #[Attributes\Test]
+    public function builderWithCustomClaimsFormatter(): void
     {
-        $formatter = $this->createMock(ClaimsFormatter::class);
+        $formatter = $this->createMock(BaseJwt\ClaimsFormatter::class);
         $formatter->expects($this->once())->method('formatClaims');
         $this->getJwt()->getBuilder($formatter)->getToken(
             $this->getJwt()->buildSigner(Jwt::HS256),

@@ -4,18 +4,8 @@ declare(strict_types=1);
 
 namespace bizley\jwt;
 
-use Lcobucci\JWT\Builder;
-use Lcobucci\JWT\ClaimsFormatter;
-use Lcobucci\JWT\Decoder;
-use Lcobucci\JWT\Encoder;
-use Lcobucci\JWT\Encoding\CannotDecodeContent;
-use Lcobucci\JWT\Encoding\ChainedFormatter;
-use Lcobucci\JWT\Encoding\JoseEncoder;
-use Lcobucci\JWT\Parser;
-use Lcobucci\JWT\Signer;
-use Lcobucci\JWT\Token;
-use Lcobucci\JWT\Validation;
-use Lcobucci\JWT\Validator;
+use Lcobucci\JWT as BaseJwt;
+use Lcobucci\JWT\Encoding;
 use yii\base\Component;
 use yii\base\InvalidConfigException;
 use yii\di\Instance;
@@ -27,7 +17,7 @@ use yii\di\Instance;
  * This implementation allows developer to pick & choose JWT tools to use for example in order to only validate
  * a token (without issuing it first, so signing key does not need to be defined).
  *
- * @author Paweł Bizley Brzozowski <pawel@positive.codes>
+ * @author Paweł Bizley Brzozowski <pawel.bizley@gmail.com>
  * @since 4.1.0
  */
 class JwtTools extends Component
@@ -38,28 +28,28 @@ class JwtTools extends Component
      * the second is $params.
      */
     public array $signers = [
-        Jwt::HS256 => [Signer\Hmac\Sha256::class],
-        Jwt::HS384 => [Signer\Hmac\Sha384::class],
-        Jwt::HS512 => [Signer\Hmac\Sha512::class],
-        Jwt::RS256 => [Signer\Rsa\Sha256::class],
-        Jwt::RS384 => [Signer\Rsa\Sha384::class],
-        Jwt::RS512 => [Signer\Rsa\Sha512::class],
-        Jwt::ES256 => [Signer\Ecdsa\Sha256::class],
-        Jwt::ES384 => [Signer\Ecdsa\Sha384::class],
-        Jwt::ES512 => [Signer\Ecdsa\Sha512::class],
-        Jwt::EDDSA => [Signer\Eddsa::class],
-        Jwt::BLAKE2B => [Signer\Blake2b::class],
+        Jwt::HS256 => [BaseJwt\Signer\Hmac\Sha256::class],
+        Jwt::HS384 => [BaseJwt\Signer\Hmac\Sha384::class],
+        Jwt::HS512 => [BaseJwt\Signer\Hmac\Sha512::class],
+        Jwt::RS256 => [BaseJwt\Signer\Rsa\Sha256::class],
+        Jwt::RS384 => [BaseJwt\Signer\Rsa\Sha384::class],
+        Jwt::RS512 => [BaseJwt\Signer\Rsa\Sha512::class],
+        Jwt::ES256 => [BaseJwt\Signer\Ecdsa\Sha256::class],
+        Jwt::ES384 => [BaseJwt\Signer\Ecdsa\Sha384::class],
+        Jwt::ES512 => [BaseJwt\Signer\Ecdsa\Sha512::class],
+        Jwt::EDDSA => [BaseJwt\Signer\Eddsa::class],
+        Jwt::BLAKE2B => [BaseJwt\Signer\Blake2b::class],
     ];
 
     /**
-     * @var string|array<string, mixed>|Encoder|null Custom encoder.
+     * @var string|array<string, mixed>|BaseJwt\Encoder|null Custom encoder.
      * It can be component's ID, configuration array, or instance of Encoder.
      * In case it's not an instance, it must be resolvable to an Encoder's instance.
      */
     public $encoder;
 
     /**
-     * @var string|array<string, mixed>|Decoder|null Custom decoder.
+     * @var string|array<string, mixed>|BaseJwt\Decoder|null Custom decoder.
      * It can be component's ID, configuration array, or instance of Decoder.
      * In case it's not an instance, it must be resolvable to a Decoder's instance.
      */
@@ -77,7 +67,6 @@ class JwtTools extends Component
 
     /**
      * @param array<array<mixed>|(callable(): mixed)|string> $config
-     * @return object
      * @throws InvalidConfigException
      */
     private function buildObjectFromArray(array $config): object
@@ -95,36 +84,36 @@ class JwtTools extends Component
      * @see https://lcobucci-jwt.readthedocs.io/en/latest/issuing-tokens/ for details of using the builder.
      * @throws InvalidConfigException
      */
-    public function getBuilder(?ClaimsFormatter $claimFormatter = null): Builder
+    public function getBuilder(?BaseJwt\ClaimsFormatter $claimFormatter = null): BaseJwt\Builder
     {
-        return new Token\Builder($this->prepareEncoder(), $claimFormatter ?? ChainedFormatter::default());
+        return new BaseJwt\Token\Builder($this->prepareEncoder(), $claimFormatter ?? Encoding\ChainedFormatter::default());
     }
 
     /**
      * @see https://lcobucci-jwt.readthedocs.io/en/latest/parsing-tokens/ for details of using the parser.
      * @throws InvalidConfigException
      */
-    public function getParser(): Parser
+    public function getParser(): BaseJwt\Parser
     {
-        return new Token\Parser($this->prepareDecoder());
+        return new BaseJwt\Token\Parser($this->prepareDecoder());
     }
 
     /**
      * @see https://lcobucci-jwt.readthedocs.io/en/stable/validating-tokens/ for details of using the validator.
      */
-    public function getValidator(): Validator
+    public function getValidator(): BaseJwt\Validator
     {
-        return new Validation\Validator();
+        return new BaseJwt\Validation\Validator();
     }
 
     /**
      * @param non-empty-string $jwt
-     * @throws CannotDecodeContent When something goes wrong while decoding.
-     * @throws Token\InvalidTokenStructure When token string structure is invalid.
-     * @throws Token\UnsupportedHeaderFound When parsed token has an unsupported header.
+     * @throws Encoding\CannotDecodeContent When something goes wrong while decoding.
+     * @throws BaseJwt\Token\InvalidTokenStructure When token string structure is invalid.
+     * @throws BaseJwt\Token\UnsupportedHeaderFound When parsed token has an unsupported header.
      * @throws InvalidConfigException
      */
-    public function parse(string $jwt): Token
+    public function parse(string $jwt): BaseJwt\Token
     {
         return $this->getParser()->parse($jwt);
     }
@@ -132,26 +121,26 @@ class JwtTools extends Component
     /**
      * This method goes through every single constraint in the set, groups all the violations, and throws an exception
      * with the grouped violations.
-     * @param non-empty-string|Token $jwt JWT string or instance of Token
-     * @throws Validation\RequiredConstraintsViolated When constraint is violated
-     * @throws Validation\NoConstraintsGiven When no constraints are provided
+     * @param non-empty-string|BaseJwt\Token $jwt JWT string or instance of Token
+     * @throws BaseJwt\Validation\RequiredConstraintsViolated When constraint is violated
+     * @throws BaseJwt\Validation\NoConstraintsGiven When no constraints are provided
      * @throws InvalidConfigException
      */
     public function assert($jwt): void
     {
-        $token = $jwt instanceof Token ? $jwt : $this->parse($jwt);
+        $token = $jwt instanceof BaseJwt\Token ? $jwt : $this->parse($jwt);
         $constraints = $this->prepareValidationConstraints();
         $this->getValidator()->assert($token, ...$constraints);
     }
 
     /**
      * This method return false on first constraint violation
-     * @param non-empty-string|Token $jwt JWT string or instance of Token
+     * @param non-empty-string|BaseJwt\Token $jwt JWT string or instance of Token
      * @throws InvalidConfigException
      */
     public function validate($jwt): bool
     {
-        $token = $jwt instanceof Token ? $jwt : $this->parse($jwt);
+        $token = $jwt instanceof BaseJwt\Token ? $jwt : $this->parse($jwt);
         $constraints = $this->prepareValidationConstraints();
 
         return $this->getValidator()->validate($token, ...$constraints);
@@ -159,13 +148,12 @@ class JwtTools extends Component
 
     /**
      * Returns the key based on the definition.
-     * @param string|array<string, string>|Signer\Key $key
-     * @return Signer\Key
+     * @param string|array<string, string>|BaseJwt\Signer\Key $key
      * @throws InvalidConfigException
      */
-    public function buildKey($key): Signer\Key
+    public function buildKey($key): BaseJwt\Signer\Key
     {
-        if ($key instanceof Signer\Key) {
+        if ($key instanceof BaseJwt\Signer\Key) {
             return $key;
         }
 
@@ -173,12 +161,7 @@ class JwtTools extends Component
             if ($key === '') {
                 throw new InvalidConfigException('Empty string used as a key configuration!');
             }
-            if (\str_starts_with($key, '@')) {
-                $keyConfig = [
-                    Jwt::KEY => \Yii::getAlias($key),
-                    Jwt::METHOD => Jwt::METHOD_FILE,
-                ];
-            } elseif (\str_starts_with($key, 'file://')) {
+            if (\str_starts_with($key, '@') || \str_starts_with($key, 'file://')) {
                 $keyConfig = [
                     Jwt::KEY => $key,
                     Jwt::METHOD => Jwt::METHOD_FILE,
@@ -199,34 +182,38 @@ class JwtTools extends Component
         $method = $keyConfig[Jwt::METHOD] ?? Jwt::METHOD_PLAIN;
         $passphrase = $keyConfig[Jwt::PASSPHRASE] ?? '';
 
-        if (!\is_string($value) || $value === '') {
-            throw new InvalidConfigException('Invalid key value!');
-        }
         if (!\in_array($method, [Jwt::METHOD_PLAIN, Jwt::METHOD_BASE64, Jwt::METHOD_FILE], true)) {
             throw new InvalidConfigException('Invalid key method!');
         }
         if (!\is_string($passphrase)) {
             throw new InvalidConfigException('Invalid key passphrase!');
         }
+        if (!\is_string($value) || $value === '') {
+            throw new InvalidConfigException('Invalid key value!');
+        }
+        /** @var string $value */
+        $value = \Yii::getAlias($value);
+        if ($value === '') {
+            throw new InvalidConfigException('Yii alias was resolved as an invalid key value!');
+        }
 
         if ($method === Jwt::METHOD_BASE64) {
-            return Signer\Key\InMemory::base64Encoded($value, $passphrase);
+            return BaseJwt\Signer\Key\InMemory::base64Encoded($value, $passphrase);
         }
         if ($method === Jwt::METHOD_FILE) {
-            return Signer\Key\InMemory::file($value, $passphrase);
+            return BaseJwt\Signer\Key\InMemory::file($value, $passphrase);
         }
 
-        return Signer\Key\InMemory::plainText($value, $passphrase);
+        return BaseJwt\Signer\Key\InMemory::plainText($value, $passphrase);
     }
 
     /**
-     * @param string|Signer $signer
-     * @return Signer
+     * @param string|BaseJwt\Signer $signer
      * @throws InvalidConfigException
      */
-    public function buildSigner($signer): Signer
+    public function buildSigner($signer): BaseJwt\Signer
     {
-        if ($signer instanceof Signer) {
+        if ($signer instanceof BaseJwt\Signer) {
             return $signer;
         }
 
@@ -235,17 +222,17 @@ class JwtTools extends Component
         }
 
         if (\in_array($signer, [Jwt::ES256, Jwt::ES384, Jwt::ES512], true)) {
-            \Yii::$container->set(Signer\Ecdsa\SignatureConverter::class, Signer\Ecdsa\MultibyteStringConverter::class);
+            \Yii::$container->set(BaseJwt\Signer\Ecdsa\SignatureConverter::class, BaseJwt\Signer\Ecdsa\MultibyteStringConverter::class);
         }
 
-        /** @var Signer $signerInstance */
+        /** @var BaseJwt\Signer $signerInstance */
         $signerInstance = $this->buildObjectFromArray($this->signers[$signer]);
 
         return $signerInstance;
     }
 
     /**
-     * @return Validation\Constraint[]
+     * @return BaseJwt\Validation\Constraint[]
      * @throws InvalidConfigException
      */
     protected function prepareValidationConstraints(): array
@@ -254,10 +241,10 @@ class JwtTools extends Component
             $constraints = [];
 
             foreach ($this->validationConstraints as $constraint) {
-                if ($constraint instanceof Validation\Constraint) {
+                if ($constraint instanceof BaseJwt\Validation\Constraint) {
                     $constraints[] = $constraint;
                 } else {
-                    /** @var Validation\Constraint $constraintInstance */
+                    /** @var BaseJwt\Validation\Constraint $constraintInstance */
                     $constraintInstance = $this->buildObjectFromArray($constraint);
                     $constraints[] = $constraintInstance;
                 }
@@ -274,19 +261,19 @@ class JwtTools extends Component
         return [];
     }
 
-    private ?Encoder $builtEncoder = null;
+    private ?BaseJwt\Encoder $builtEncoder = null;
 
     /**
      * @throws InvalidConfigException
      */
-    protected function prepareEncoder(): Encoder
+    protected function prepareEncoder(): BaseJwt\Encoder
     {
         if ($this->builtEncoder === null) {
             if ($this->encoder === null) {
-                $this->builtEncoder = new JoseEncoder();
+                $this->builtEncoder = new Encoding\JoseEncoder();
             } else {
-                /** @var Encoder $encoder */
-                $encoder = Instance::ensure($this->encoder, Encoder::class);
+                /** @var BaseJwt\Encoder $encoder */
+                $encoder = Instance::ensure($this->encoder, BaseJwt\Encoder::class);
                 $this->builtEncoder = $encoder;
             }
         }
@@ -294,19 +281,19 @@ class JwtTools extends Component
         return $this->builtEncoder;
     }
 
-    private ?Decoder $builtDecoder = null;
+    private ?BaseJwt\Decoder $builtDecoder = null;
 
     /**
      * @throws InvalidConfigException
      */
-    protected function prepareDecoder(): Decoder
+    protected function prepareDecoder(): BaseJwt\Decoder
     {
         if ($this->builtDecoder === null) {
             if ($this->decoder === null) {
-                $this->builtDecoder = new JoseEncoder();
+                $this->builtDecoder = new Encoding\JoseEncoder();
             } else {
-                /** @var Decoder $decoder */
-                $decoder = Instance::ensure($this->decoder, Decoder::class);
+                /** @var BaseJwt\Decoder $decoder */
+                $decoder = Instance::ensure($this->decoder, BaseJwt\Decoder::class);
                 $this->builtDecoder = $decoder;
             }
         }
