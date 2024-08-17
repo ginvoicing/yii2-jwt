@@ -24,9 +24,9 @@
   },
   "require-dev": {
     "infection/infection": "*",
-    "lcobucci/clock": "^3.0",
+    "lcobucci/clock": "^3.2",
     "phpstan/phpstan": "*",
-    "phpunit/phpunit": "^10.0",
+    "phpunit/phpunit": "^10.5",
     "roave/security-advisories": "dev-latest"
   },
   "autoload": {

@@ -36,7 +36,7 @@ jobs:
         run: composer i --prefer-dist --no-interaction --no-progress --optimize-autoloader
 
       - name: PHPStan tests
-        run: vendor/bin/phpstan analyze -l 9 -a vendor/yiisoft/yii2/Yii.php --no-progress src
+        run: sh phpstan.sh
 
   Infection:
     name: PHP ${{ matrix.php }}

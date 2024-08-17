@@ -10,18 +10,14 @@ use Lcobucci\JWT\Signer\Hmac\Sha256;
 use Lcobucci\JWT\Signer\InvalidKeyProvided;
 use Lcobucci\JWT\Signer\Key\InMemory;
 use Lcobucci\JWT\Validation\Constraint\SignedWith;
-use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes;
 use PHPUnit\Framework\TestCase;
 use yii\base\InvalidConfigException;
 
-#[CoversClass(Jwt::class)]
-#[CoversClass(JwtTools::class)]
+#[Attributes\CoversClass(Jwt::class)]
+#[Attributes\CoversClass(JwtTools::class)]
 class SignerTest extends TestCase
 {
-    /**
-     * @throws InvalidConfigException
-     */
     public function getJwt(array $config = []): JwtTools
     {
         /** @var JwtTools $jwt */
@@ -156,8 +152,9 @@ class SignerTest extends TestCase
         ];
     }
 
-    #[DataProvider('providerForSigners')]
-    public function testParseTokenWithSignature(
+    #[Attributes\DataProvider('providerForSigners')]
+    #[Attributes\Test]
+    public function parseTokenWithSignature(
         string|object $signer,
         string|array|object $signingKey,
         string|array|null $verifyingKey,
@@ -179,21 +176,24 @@ class SignerTest extends TestCase
         );
     }
 
-    public function testInvalidSignerId(): void
+    #[Attributes\Test]
+    public function invalidSignerId(): void
     {
         $this->expectException(InvalidConfigException::class);
         $this->expectExceptionMessage('Invalid signer ID!');
         $this->getJwt()->buildSigner('Invalid');
     }
 
-    public function testEmptyKey(): void
+    #[Attributes\Test]
+    public function emptyKey(): void
     {
         $this->expectException(InvalidConfigException::class);
         $this->expectExceptionMessage('Empty string used as a key configuration!');
         $this->getJwt()->buildKey('');
     }
 
-    public function testInvalidKeyWithNotEnoughBits(): void
+    #[Attributes\Test]
+    public function invalidKeyWithNotEnoughBits(): void
     {
         $this->expectException(InvalidKeyProvided::class);
         $this->expectExceptionMessage('Key provided is shorter than 256 bits, only 56 bits provided');

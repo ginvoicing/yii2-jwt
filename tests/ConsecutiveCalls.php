@@ -4,52 +4,34 @@ declare(strict_types=1);
 
 namespace bizley\tests;
 
-use PHPUnit\Framework\Assert;
 use PHPUnit\Framework\Constraint\Constraint;
 
-class ConsecutiveCalls extends Assert
+class ConsecutiveCalls extends Constraint
 {
     /**
-     * @var array<mixed[]>
+     * @var array<mixed>
      */
-    private array $data = [];
-    private int $internalCounter = -1;
+    private array $stack;
+    private int $call = 0;
 
-    /**
-     * @param mixed[] ...$args
-     */
-    private function __construct(array ...$args)
+    public function __construct(mixed ...$args)
     {
-        foreach ($args as $arg) {
-            if (!\is_array($arg)) {
-                throw new \InvalidArgumentException('All arguments must be arrays');
-            }
-
-            $this->data[] = $arg;
-        }
+        $this->stack = $args;
     }
 
-    /**
-     * @param mixed[] ...$arguments
-     */
-    public static function withArgs(array ...$arguments): self
+    protected function matches(mixed $other): bool
     {
-        return new self(...$arguments);
+        $this->call++;
+        $value = array_shift($this->stack);
+        if ($value instanceof Constraint) {
+            return $value->evaluate($other, '', true); // @phpstan-ignore-line
+        }
+
+        return $value === $other;
     }
 
-    public function __invoke(mixed ...$args): void
+    public function toString(): string
     {
-        $testData = $this->data[++$this->internalCounter] ?? null;
-        if ($testData === null) {
-            $testData = $this->data[$this->internalCounter % \count($this->data)];
-        }
-
-        foreach ($testData as $key => $value) {
-            if ($value instanceof Constraint) {
-                $value->evaluate($args[$key]);
-            } else {
-                self::assertEquals($value, $args[$key]);
-            }
-        }
+        return sprintf('was called the #%d time', $this->call);
     }
 }

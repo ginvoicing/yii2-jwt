@@ -112,7 +112,7 @@ Configuration array can be as the following:
 ]
 ```
 
-- key (`bizley\jwt\Jwt::KEY`) - _string_, default `''`,
+- key (`bizley\jwt\Jwt::KEY`) - _string_, default `''`, start it with `@` if it's Yii alias,
 - passphrase (`bizley\jwt\Jwt::PASSPHRASE`) - _string_, default `''`,
 - method (`bizley\jwt\Jwt::METHOD`) - _string_, default `bizley\jwt\Jwt::METHOD_PLAIN`,
   available: `bizley\jwt\Jwt::METHOD_PLAIN`, `bizley\jwt\Jwt::METHOD_BASE64`, `bizley\jwt\Jwt::METHOD_FILE` 

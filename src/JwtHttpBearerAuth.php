@@ -10,11 +10,7 @@ use Lcobucci\JWT\Validation;
 use yii\base\InvalidConfigException;
 use yii\di\Instance;
 use yii\filters\auth\HttpBearerAuth;
-use yii\web\IdentityInterface;
-use yii\web\Request;
-use yii\web\Response;
-use yii\web\UnauthorizedHttpException;
-use yii\web\User;
+use yii\web;
 
 /**
  * JwtHttpBearerAuth is an action filter that supports the authentication method based on HTTP Bearer JSON Web Token.
@@ -32,7 +28,7 @@ use yii\web\User;
  * }
  * ```
  *
- * @author Paweł Bizley Brzozowski <pawel@positive.codes> since 2.0 (fork)
+ * @author Paweł Bizley Brzozowski <pawel.bizley@gmail.com> since 2.0 (fork)
  * @author Dmitriy Demin <sizemail@gmail.com> original package
  */
 class JwtHttpBearerAuth extends HttpBearerAuth
@@ -91,10 +87,10 @@ class JwtHttpBearerAuth extends HttpBearerAuth
 
     /**
      * Authenticates the current user.
-     * @param User $user
-     * @param Request $request
-     * @param Response $response
-     * @return IdentityInterface|null the authenticated user identity. If authentication information is not provided, null will be returned.
+     * @param web\User $user
+     * @param web\Request $request
+     * @param web\Response $response
+     * @return web\IdentityInterface|null the authenticated user identity. If authentication information is not provided, null will be returned.
      * @throws InvalidConfigException When JWT configuration has not been properly initialized.
      * @throws CannotDecodeContent When something goes wrong while decoding token.
      * @throws Token\InvalidTokenStructure When token string structure is invalid.
@@ -102,9 +98,9 @@ class JwtHttpBearerAuth extends HttpBearerAuth
      * @throws Validation\RequiredConstraintsViolated When constraint is not present in token.
      * @throws Validation\NoConstraintsGiven When no constraints are provided.
      * @throws Validation\ConstraintViolation When constraint is violated.
-     * @throws UnauthorizedHttpException if authentication information is provided but is invalid.
+     * @throws web\UnauthorizedHttpException if authentication information is provided but is invalid.
      */
-    public function authenticate($user, $request, $response): ?IdentityInterface // BC signature
+    public function authenticate($user, $request, $response): ?web\IdentityInterface // BC signature
     {
         /** @var string|null $authHeader */
         $authHeader = $request->getHeaders()->get($this->header);
@@ -137,7 +133,7 @@ class JwtHttpBearerAuth extends HttpBearerAuth
             }
         }
 
-        if (!$identity instanceof IdentityInterface) {
+        if (!$identity instanceof web\IdentityInterface) {
             return null;
         }
 
@@ -157,9 +153,9 @@ class JwtHttpBearerAuth extends HttpBearerAuth
     }
 
     /**
-     * @throws UnauthorizedHttpException
+     * @throws web\UnauthorizedHttpException
      */
-    public function fail(Response $response): void
+    public function fail(web\Response $response): void
     {
         $this->challenge($response);
         $this->handleFailure($response);
@@ -167,11 +163,11 @@ class JwtHttpBearerAuth extends HttpBearerAuth
 
     /**
      * Handles authentication failure.
-     * @param Response $response
-     * @throws UnauthorizedHttpException
+     * @param web\Response $response
+     * @throws web\UnauthorizedHttpException
      */
     public function handleFailure($response): void // BC signature
     {
-        throw new UnauthorizedHttpException('Your request was made with invalid or expired JSON Web Token.');
+        throw new web\UnauthorizedHttpException('Your request was made with invalid or expired JSON Web Token.');
     }
 }
