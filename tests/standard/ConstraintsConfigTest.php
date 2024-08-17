@@ -9,24 +9,19 @@ use bizley\jwt\JwtTools;
 use bizley\tests\stubs\YiiConstraint;
 use Lcobucci\JWT\Token;
 use Lcobucci\JWT\Validation\Constraint;
-use Lcobucci\JWT\Validation\Constraint\IdentifiedBy;
-use Lcobucci\JWT\Validation\Constraint\RelatedTo;
 use Lcobucci\JWT\Validation\NoConstraintsGiven;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
-use yii\base\InvalidConfigException;
 
 #[CoversClass(Jwt::class)]
 #[CoversClass(JwtTools::class)]
 class ConstraintsConfigTest extends TestCase
 {
-    /**
-     * @param array|\Closure|null $validationConstraints
-     * @throws InvalidConfigException
-     */
-    private function getJwt($validationConstraints): Jwt
+    private function getJwt(array|\Closure|null $validationConstraints): Jwt
     {
-        return \Yii::createObject(
+        /** @var Jwt $jwt */
+        $jwt = \Yii::createObject(
             [
                 'class' => Jwt::class,
                 'signer' => Jwt::HS256,
@@ -34,6 +29,8 @@ class ConstraintsConfigTest extends TestCase
                 'validationConstraints' => $validationConstraints,
             ]
         );
+
+        return $jwt;
     }
 
     private function getToken(Jwt $jwt): Token
@@ -44,37 +41,42 @@ class ConstraintsConfigTest extends TestCase
         );
     }
 
-    public function testArrayConfigWithObjects(): void
+    #[Test]
+    public function arrayConfigWithObjects(): void
     {
-        $jwt = $this->getJwt([new IdentifiedBy('test'), new RelatedTo('test')]);
+        $jwt = $this->getJwt([new Constraint\IdentifiedBy('test'), new Constraint\RelatedTo('test')]);
 
         self::assertTrue($jwt->validate($this->getToken($jwt)));
     }
 
-    public function testArrayConfigWithArray(): void
+    #[Test]
+    public function arrayConfigWithArray(): void
     {
-        $jwt = $this->getJwt([[IdentifiedBy::class, ['test']], [RelatedTo::class, ['test']]]);
+        $jwt = $this->getJwt([[Constraint\IdentifiedBy::class, ['test']], [Constraint\RelatedTo::class, ['test']]]);
 
         self::assertTrue($jwt->validate($this->getToken($jwt)));
     }
 
-    public function testArrayConfigWithYiiArray(): void
+    #[Test]
+    public function arrayConfigWithYiiArray(): void
     {
         $jwt = $this->getJwt([['class' => YiiConstraint::class, 'test' => 'yii']]);
 
         self::assertTrue($jwt->validate($this->getToken($jwt)));
     }
 
-    public function testArrayConfigWithClosure(): void
+    #[Test]
+    public function arrayConfigWithClosure(): void
     {
         $jwt = $this->getJwt(static function (Jwt $jwt) {
-            return [new IdentifiedBy('test'), new RelatedTo('test')];
+            return [new Constraint\IdentifiedBy('test'), new Constraint\RelatedTo('test')];
         });
 
         self::assertTrue($jwt->validate($this->getToken($jwt)));
     }
 
-    public function testDefaultConfig(): void
+    #[Test]
+    public function defaultConfig(): void
     {
         $jwt = $this->getJwt(null);
 
@@ -82,23 +84,25 @@ class ConstraintsConfigTest extends TestCase
         $jwt->validate($this->getToken($jwt));
     }
 
-    public function testArrayConfigWithCustomConstraints(): void
+    #[Test]
+    public function arrayConfigWithCustomConstraints(): void
     {
         $constraint1 = $this->createMock(Constraint::class);
-        $constraint1->expects(self::once())->method('assert');
+        $constraint1->expects($this->once())->method('assert');
         $constraint2 = $this->createMock(Constraint::class);
-        $constraint2->expects(self::once())->method('assert');
+        $constraint2->expects($this->once())->method('assert');
 
         $jwt = $this->getJwt([$constraint1, $constraint2]);
         $jwt->validate($this->getToken($jwt));
     }
 
-    public function testDirectConfigWithCustomConstraints(): void
+    #[Test]
+    public function directConfigWithCustomConstraints(): void
     {
         $constraint1 = $this->createMock(Constraint::class);
-        $constraint1->expects(self::once())->method('assert');
+        $constraint1->expects($this->once())->method('assert');
         $constraint2 = $this->createMock(Constraint::class);
-        $constraint2->expects(self::once())->method('assert');
+        $constraint2->expects($this->once())->method('assert');
 
         $jwt = $this->getJwt(null);
         $jwt->getConfiguration()->setValidationConstraints($constraint1, $constraint2);
