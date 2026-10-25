@@ -56,7 +56,7 @@ class JwtTools extends Component
     public $decoder;
 
     /**
-     * @var array<array<mixed>|(callable(): mixed)|string>|(callable(): mixed)|null List of constraints that
+     * @var array<BaseJwt\Validation\Constraint|array<mixed>>|(callable(): mixed)|null List of constraints that
      * will be used to validate against or an anonymous function that can be resolved as such list. The signature of
      * the function should be `function(\bizley\jwt\JwtTools|\bizley\jwt\Jwt $jwt)` where $jwt will be an instance of
      * this component.
@@ -66,18 +66,32 @@ class JwtTools extends Component
     public $validationConstraints;
 
     /**
-     * @param array<array<mixed>|(callable(): mixed)|string> $config
+     * @template T of object
+     * @param array<mixed> $config Yii-style configuration array or a list of [$class, $constructorParams]
+     * @param class-string<T> $type Expected type of the object
+     * @return T
      * @throws InvalidConfigException
      */
-    private function buildObjectFromArray(array $config): object
+    private function buildObjectFromArray(array $config, string $type): object
     {
         $keys = \array_keys($config);
         if (\is_string(\reset($keys))) {
             // most probably Yii-style config
-            return \Yii::createObject($config);
+            return Instance::ensure($config, $type);
         }
 
-        return \Yii::createObject(...$config);
+        $class = $config[0] ?? null;
+        $params = $config[1] ?? [];
+        if (!\is_string($class) || (!\class_exists($class) && !\interface_exists($class)) || !\is_array($params)) {
+            throw new InvalidConfigException('Invalid object configuration!');
+        }
+
+        $object = \Yii::createObject($class, $params);
+        if (!$object instanceof $type) {
+            throw new InvalidConfigException("Invalid data type: $class. $type is expected.");
+        }
+
+        return $object;
     }
 
     /**
@@ -148,7 +162,7 @@ class JwtTools extends Component
 
     /**
      * Returns the key based on the definition.
-     * @param string|array<string, string>|BaseJwt\Signer\Key $key
+     * @param string|array<string, mixed>|BaseJwt\Signer\Key $key
      * @throws InvalidConfigException
      */
     public function buildKey($key): BaseJwt\Signer\Key
@@ -225,10 +239,7 @@ class JwtTools extends Component
             \Yii::$container->set(BaseJwt\Signer\Ecdsa\SignatureConverter::class, BaseJwt\Signer\Ecdsa\MultibyteStringConverter::class);
         }
 
-        /** @var BaseJwt\Signer $signerInstance */
-        $signerInstance = $this->buildObjectFromArray($this->signers[$signer]);
-
-        return $signerInstance;
+        return $this->buildObjectFromArray($this->signers[$signer], BaseJwt\Signer::class);
     }
 
     /**
@@ -243,10 +254,10 @@ class JwtTools extends Component
             foreach ($this->validationConstraints as $constraint) {
                 if ($constraint instanceof BaseJwt\Validation\Constraint) {
                     $constraints[] = $constraint;
+                } elseif (\is_array($constraint)) {
+                    $constraints[] = $this->buildObjectFromArray($constraint, BaseJwt\Validation\Constraint::class);
                 } else {
-                    /** @var BaseJwt\Validation\Constraint $constraintInstance */
-                    $constraintInstance = $this->buildObjectFromArray($constraint);
-                    $constraints[] = $constraintInstance;
+                    throw new InvalidConfigException('Invalid constraint configuration!');
                 }
             }
 

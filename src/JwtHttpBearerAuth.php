@@ -40,7 +40,7 @@ class JwtHttpBearerAuth extends HttpBearerAuth
     public $jwt = 'jwt';
 
     /**
-     * @var (callable(): mixed)|null anonymous function that should return identity of the user authenticated with
+     * @var (callable(Token): mixed)|null anonymous function that should return identity of the user authenticated with
      * the JWT payload information. It should have the following signature:
      *
      * ```php

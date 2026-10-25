@@ -11,8 +11,10 @@ use Lcobucci\JWT\Token;
 use Lcobucci\JWT\Validation\Constraint;
 use Lcobucci\JWT\Validation\NoConstraintsGiven;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use yii\base\InvalidConfigException;
 
 #[CoversClass(Jwt::class)]
 #[CoversClass(JwtTools::class)]
@@ -104,6 +106,47 @@ class ConstraintsConfigTest extends TestCase
 
         $jwt = $this->getJwt(null);
         $jwt->validationConstraints = [$constraint1, $constraint2];
+        $jwt->validate($this->getToken($jwt));
+    }
+
+    #[Test]
+    public function arrayConfigWithInterface(): void
+    {
+        \Yii::$container->set(Constraint::class, Constraint\IdentifiedBy::class);
+        try {
+            $jwt = $this->getJwt([[Constraint::class, ['test']]]);
+
+            self::assertTrue($jwt->validate($this->getToken($jwt)));
+        } finally {
+            \Yii::$container->clear(Constraint::class);
+        }
+    }
+
+    public static function providerForInvalidArrayConfig(): iterable
+    {
+        yield 'constraint not an array' => [['test'], 'Invalid constraint configuration!'];
+        yield 'class not a string' => [[[123]], 'Invalid object configuration!'];
+        yield 'missing class' => [[[]], 'Invalid object configuration!'];
+        yield 'non-existing class' => [[['NonExistingClass']], 'Invalid object configuration!'];
+        yield 'params not an array' => [[[Constraint\IdentifiedBy::class, 'test']], 'Invalid object configuration!'];
+        yield 'not a constraint' => [
+            [[\stdClass::class]],
+            'Invalid data type: stdClass. Lcobucci\JWT\Validation\Constraint is expected.',
+        ];
+        yield 'Yii config not a constraint' => [
+            [['class' => \stdClass::class]],
+            'Invalid data type: stdClass. Lcobucci\JWT\Validation\Constraint is expected.',
+        ];
+    }
+
+    #[Test]
+    #[DataProvider('providerForInvalidArrayConfig')]
+    public function invalidArrayConfig(array $config, string $message): void
+    {
+        $jwt = $this->getJwt($config);
+
+        $this->expectException(InvalidConfigException::class);
+        $this->expectExceptionMessage($message);
         $jwt->validate($this->getToken($jwt));
     }
 }

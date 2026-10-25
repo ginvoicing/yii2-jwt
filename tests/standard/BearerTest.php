@@ -264,7 +264,7 @@ class BearerTest extends TestCase
     public function failVisibility(): void
     {
         $filter = new stubs\TestJwtHttpBearerAuth(['jwt' => $this->getJwt()]);
-        $filter->fail($this->createMock(web\Response::class));
+        $filter->fail(self::createStub(web\Response::class));
 
         self::assertSame(2, $filter->flag);
     }
