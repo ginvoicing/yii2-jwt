@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace bizley\tests\standard;
 
 use bizley\jwt\Jwt;
+use PHPUnit\Framework\Attributes;
 use PHPUnit\Framework\TestCase;
 use Yii;
 use yii\base\InvalidConfigException;
 
+#[Attributes\CoversClass(Jwt::class)]
 class JwksTest extends TestCase
 {
     /**
@@ -59,16 +61,69 @@ class JwksTest extends TestCase
     }
 
     /**
-     * @dataProvider providerForSigners
      * @throws InvalidConfigException
      */
-    public function testJwks(array $config, string $algorithm): void
+    #[Attributes\DataProvider('providerForSigners')]
+    #[Attributes\Test]
+    public function jwks(array $config, string $algorithm): void
     {
         $jwt = $this->getJwt($config);
         $kid = md5('secret1secret2');
         $jwks = $jwt->getJwks($kid);
-        self::assertSame($algorithm,$jwks['alg']);
-        self::assertSame($kid,$jwks['kid']);
+        self::assertSame('RSA', $jwks['kty']);
+        self::assertSame($algorithm, $jwks['alg']);
+        self::assertSame('sig', $jwks['use']);
+        self::assertSame($kid, $jwks['kid']);
         self::assertNotEmpty($jwks['n']);
+        self::assertSame('AQAB', $jwks['e']);
+    }
+
+    /**
+     * @throws InvalidConfigException
+     */
+    #[Attributes\Test]
+    public function jwksForUnsupportedSigner(): void
+    {
+        $jwt = $this->getJwt([
+            'signer' => Jwt::ES256,
+            'signingKey' => '@bizley/tests/data/es256.key',
+            'verifyingKey' => '@bizley/tests/data/es256.key.pub',
+        ]);
+
+        self::assertSame([], $jwt->getJwks('kid'));
+    }
+
+    /**
+     * @throws InvalidConfigException
+     */
+    #[Attributes\Test]
+    public function jwksForUnreadableKey(): void
+    {
+        $jwt = $this->getJwt([
+            'signer' => Jwt::RS256,
+            'signingKey' => 'not-a-key',
+            'verifyingKey' => '@bizley/tests/data/rs256.key.pub',
+        ]);
+
+        $this->expectException(InvalidConfigException::class);
+        $this->expectExceptionMessage('Unable to read the signing key!');
+        $jwt->getJwks('kid');
+    }
+
+    /**
+     * @throws InvalidConfigException
+     */
+    #[Attributes\Test]
+    public function jwksForNonRsaKey(): void
+    {
+        $jwt = $this->getJwt([
+            'signer' => Jwt::RS256,
+            'signingKey' => '@bizley/tests/data/es256.key',
+            'verifyingKey' => '@bizley/tests/data/rs256.key.pub',
+        ]);
+
+        $this->expectException(InvalidConfigException::class);
+        $this->expectExceptionMessage('Signing key is not a valid RSA key!');
+        $jwt->getJwks('kid');
     }
 }

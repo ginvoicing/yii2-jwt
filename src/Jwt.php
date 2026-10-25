@@ -181,35 +181,39 @@ class Jwt extends JwtTools
         return $this->getConfiguration()->validator();
     }
 
-
     /**
-     * Get JSON Web Key Set array for RSA256.
-     * 
-     * @warning: only working for RSA256
-     * @param string $key_id This is a random alphanumeric key to be used in kid attribute of the jwsk array
-     * @return array of jwks keys for given Algorithm
+     * Returns the JSON Web Key for the RS256 signing key.
+     * Only RS256 is supported, an empty array is returned for any other signer.
+     * @param string $keyId Value of the "kid" attribute of the key
+     * @return array<string, string>
+     * @throws InvalidConfigException
      */
-    
-    public function getJwks(string $keyId): array {
-      if(\in_array($this->signer, $this->algorithmTypes[self::ASYMMETRIC], true)) {
-        $keyInfo = openssl_pkey_get_details(
-            openssl_pkey_get_private(
-                $this->buildKey($this->signingKey)->contents(),
-                $this->buildKey($this->signingKey)->passphrase()
-            )
-        );
-        if($this->signer === self::RS256) {
-            $jwks = [
-                'kty' => 'RSA',
-                'alg' => self::RS256,
-                'use' => 'sig',
-                'n' => $this->prepareEncoder()->base64UrlEncode($keyInfo['rsa']['n']),
-                'e' => $this->prepareEncoder()->base64UrlEncode($keyInfo['rsa']['e']),
-                'kid' => $keyId
-            ];
-            }
+    public function getJwks(string $keyId): array
+    {
+        if ($this->signer !== self::RS256) {
+            return [];
         }
-      return $jwks;
+
+        $signingKey = $this->buildKey($this->signingKey);
+        $privateKey = \openssl_pkey_get_private($signingKey->contents(), $signingKey->passphrase());
+        if ($privateKey === false) {
+            throw new InvalidConfigException('Unable to read the signing key!');
+        }
+        $keyInfo = \openssl_pkey_get_details($privateKey);
+        if ($keyInfo === false || !isset($keyInfo['rsa']['n'], $keyInfo['rsa']['e'])) {
+            throw new InvalidConfigException('Signing key is not a valid RSA key!');
+        }
+
+        $encoder = $this->prepareEncoder();
+
+        return [
+            'kty' => 'RSA',
+            'alg' => self::RS256,
+            'use' => 'sig',
+            'n' => $encoder->base64UrlEncode($keyInfo['rsa']['n']),
+            'e' => $encoder->base64UrlEncode($keyInfo['rsa']['e']),
+            'kid' => $keyId,
+        ];
     }
 
     /**

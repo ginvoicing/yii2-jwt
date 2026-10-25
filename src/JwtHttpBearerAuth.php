@@ -129,7 +129,7 @@ class JwtHttpBearerAuth extends HttpBearerAuth
             if (\is_callable($this->auth, true)) {
                 $identity = \call_user_func($this->auth, $token);
             } else {
-                $identity = $user->loginByAccessToken($token->toString(), \get_class($this));
+                $identity = $user->loginByAccessToken($token->toString(), static::class);
             }
         }
 
